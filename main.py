@@ -1,10 +1,14 @@
 from fastapi import FastAPI, WebSocket, Depends, HTTPException
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 import asyncio
 import os
 
 app = FastAPI()
 security = HTTPBasic()
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 def authenticate(credentials: HTTPBasicCredentials = Depends(security)):
     guest_password = os.getenv("GUEST_PASSWORD")
@@ -18,10 +22,10 @@ def authenticate(credentials: HTTPBasicCredentials = Depends(security)):
 
 @app.get("/")
 async def read_root(username: str = Depends(authenticate)):
-    return {"Hello": "World"}
+    return FileResponse("static/index.html")
 
 @app.get("/health")
-async def health_check(username: str = Depends(authenticate)):
+async def health_check():
     return {"status": "healthy"}
 
 @app.websocket("/ws/counter")
