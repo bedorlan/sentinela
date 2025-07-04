@@ -6,6 +6,7 @@ const MainPage = () => {
   const [detectionState, setDetectionState] = useState('idle');
   const [confidence, setConfidence] = useState(0);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
+  const cameraRef = React.useRef(null);
 
   const placeholders = [
     "Tell me when my cat enters the room... 🐱",
@@ -21,6 +22,28 @@ const MainPage = () => {
       setPlaceholderIndex((prev) => (prev + 1) % placeholders.length);
     }, 3000);
     return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const startWebcam = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        if (cameraRef.current) {
+          cameraRef.current.srcObject = stream;
+        }
+      } catch (err) {
+        console.error('Error accessing webcam:', err);
+      }
+    };
+    
+    startWebcam();
+    
+    return () => {
+      if (cameraRef.current && cameraRef.current.srcObject) {
+        const tracks = cameraRef.current.srcObject.getTracks();
+        tracks.forEach(track => track.stop());
+      }
+    };
   }, []);
 
   const startWatching = () => {
@@ -74,16 +97,16 @@ const MainPage = () => {
           {/* Video Feed */}
           <div className="bg-black/30 backdrop-blur rounded-3xl p-8 mb-8 border border-white/20">
             <div className="aspect-video bg-black/50 rounded-2xl flex items-center justify-center relative overflow-hidden">
-              {!isWatching ? (
-                <div className="text-center">
-                  <p className="text-4xl mb-4">📹</p>
-                  <p className="text-xl text-gray-400">Camera feed will appear here</p>
-                </div>
-              ) : (
-                <div className="relative w-full h-full">
-                  {/* Simulated video feed */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 animate-pulse" />
-                  
+              <video
+                ref={cameraRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full h-full object-cover"
+              />
+              
+              {isWatching && (
+                <div className="absolute inset-0 pointer-events-none">
                   {/* Scanning effect */}
                   {detectionState === 'watching' && (
                     <div className="absolute inset-0">
@@ -93,7 +116,7 @@ const MainPage = () => {
 
                   {/* Detection celebration */}
                   {detectionState === 'detected' && (
-                    <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/50">
                       <div className="text-center animate-zoomIn">
                         <p className="text-8xl mb-4">🎉</p>
                         <p className="text-3xl font-bold text-yellow-400">DETECTED!</p>
