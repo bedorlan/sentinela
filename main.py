@@ -1,14 +1,27 @@
-from fastapi import FastAPI, WebSocket
+from fastapi import FastAPI, WebSocket, Depends, HTTPException
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 import asyncio
+import os
 
 app = FastAPI()
+security = HTTPBasic()
+
+def authenticate(credentials: HTTPBasicCredentials = Depends(security)):
+    guest_password = os.getenv("GUEST_PASSWORD")
+    if not guest_password:
+        raise HTTPException(status_code=500, detail="Authentication not configured")
+    
+    if credentials.username != "guest" or credentials.password != guest_password:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    return credentials.username
 
 @app.get("/")
-async def read_root():
+async def read_root(username: str = Depends(authenticate)):
     return {"Hello": "World"}
 
 @app.get("/health")
-async def health_check():
+async def health_check(username: str = Depends(authenticate)):
     return {"status": "healthy"}
 
 @app.websocket("/ws/counter")
