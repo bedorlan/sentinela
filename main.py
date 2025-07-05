@@ -1,8 +1,8 @@
+from datetime import datetime
 from fastapi import FastAPI, WebSocket, Depends, HTTPException
+from fastapi.responses import FileResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
-import asyncio
 import os
 
 app = FastAPI()
@@ -28,17 +28,34 @@ async def read_root(username: str = Depends(authenticate)):
 async def health_check():
     return {"status": "healthy"}
 
-@app.websocket("/ws/counter")
-async def websocket_counter(websocket: WebSocket):
+@app.websocket("/ws/frames")
+async def websocket_frames(websocket: WebSocket):
     await websocket.accept()
-    counter = 0
+    print(f"WebSocket connection established at {datetime.now()}")
+    
     try:
+        frame_count = 0
         while True:
-            await websocket.send_text(str(counter))
-            counter += 1
-            await asyncio.sleep(1)
-    except Exception:
-        pass
+            # Receive frame data (binary)
+            frame_data = await websocket.receive_bytes()
+            frame_count += 1
+            
+            # Get current timestamp for filename
+            timestamp = datetime.now()
+            
+            # Print frame information
+            print(f"Frame #{frame_count} received at {timestamp}")
+            print(f"  Size: {len(frame_data)} bytes")
+            # Check if JPEG by looking for JPEG magic bytes
+            frame_type = "JPEG" if frame_data[:2] == b'\xff\xd8' else "Unknown"
+            print(f"  Type: {frame_type}")
+            print("-" * 50)
+            
+    except Exception as e:
+        print(f"WebSocket error: {e}")
+    finally:
+        print(f"WebSocket connection closed at {datetime.now()}")
+        print(f"Total frames received: {frame_count}")
 
 if __name__ == "__main__":
     import uvicorn

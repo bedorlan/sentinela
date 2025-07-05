@@ -1,12 +1,24 @@
 const { useState, useEffect } = React;
 
+// Detection state enum
+const DetectionState = {
+  IDLE: 'idle',
+  WATCHING: 'watching',
+  DETECTED: 'detected'
+};
+
 const MainPage = () => {
   const [prompt, setPrompt] = useState('');
   const [isWatching, setIsWatching] = useState(false);
-  const [detectionState, setDetectionState] = useState('idle');
+  const [detectionState, setDetectionState] = useState(DetectionState.IDLE);
   const [confidence, setConfidence] = useState(0);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
+  const [fps, setFps] = useState(1);
+  const [imageQuality, setImageQuality] = useState(0.8);
   const cameraRef = React.useRef(null);
+  const canvasRef = React.useRef(null);
+  const wsRef = React.useRef(null);
+  const captureIntervalRef = React.useRef(null);
 
   const placeholders = [
     "Tell me when my cat enters the room... 🐱",
@@ -46,19 +58,69 @@ const MainPage = () => {
     };
   }, []);
 
+  const captureFrame = () => {
+    if (cameraRef.current && canvasRef.current && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      const video = cameraRef.current;
+      const canvas = canvasRef.current;
+      const context = canvas.getContext('2d');
+      
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      context.drawImage(video, 0, 0);
+      
+      canvas.toBlob((blob) => {
+        if (blob && wsRef.current.readyState === WebSocket.OPEN) {
+          wsRef.current.send(blob);
+        }
+      }, 'image/jpeg', imageQuality);
+    }
+  };
+
   const startWatching = () => {
     setIsWatching(true);
-    setDetectionState('watching');
-    // Simulate confidence building
-    let conf = 0;
-    const interval = setInterval(() => {
-      conf += Math.random() * 15;
-      setConfidence(Math.min(conf, 100));
-      if (conf >= 100) {
-        clearInterval(interval);
-        setDetectionState('detected');
+    setDetectionState(DetectionState.WATCHING);
+    console.log(`Starting to watch for: ${prompt}`);
+    console.log(`FPS: ${fps}`);
+    console.log(`Image Quality: ${imageQuality}`);
+    
+    // Connect to WebSocket using current domain
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws/frames`;
+    wsRef.current = new WebSocket(wsUrl);
+    
+    wsRef.current.onopen = () => {
+      console.log('WebSocket connected');
+      // Start capturing frames
+      captureIntervalRef.current = setInterval(captureFrame, 1000 / fps);
+    };
+    
+    wsRef.current.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+    
+    wsRef.current.onclose = () => {
+      console.log('WebSocket disconnected');
+      if (captureIntervalRef.current) {
+        clearInterval(captureIntervalRef.current);
       }
-    }, 500);
+    };
+  };
+
+  const stopWatching = () => {
+    setIsWatching(false);
+    setDetectionState(DetectionState.IDLE);
+    setConfidence(0);
+    console.log('Stopped watching');
+    
+    // Stop capturing frames
+    if (captureIntervalRef.current) {
+      clearInterval(captureIntervalRef.current);
+    }
+    
+    // Close WebSocket connection
+    if (wsRef.current) {
+      wsRef.current.close();
+    }
   };
 
   return (
@@ -104,18 +166,22 @@ const MainPage = () => {
                 muted
                 className="w-full h-full object-cover"
               />
+              <canvas
+                ref={canvasRef}
+                style={{ display: 'none' }}
+              />
               
               {isWatching && (
                 <div className="absolute inset-0 pointer-events-none">
                   {/* Scanning effect */}
-                  {detectionState === 'watching' && (
+                  {detectionState === DetectionState.WATCHING && (
                     <div className="absolute inset-0">
                       <div className="h-1 bg-yellow-400 animate-scan" />
                     </div>
                   )}
 
                   {/* Detection celebration */}
-                  {detectionState === 'detected' && (
+                  {detectionState === DetectionState.DETECTED && (
                     <div className="absolute inset-0 flex items-center justify-center bg-black/50">
                       <div className="text-center animate-zoomIn">
                         <p className="text-8xl mb-4">🎉</p>
@@ -125,7 +191,7 @@ const MainPage = () => {
                   )}
 
                   {/* Confidence meter */}
-                  {detectionState === 'watching' && (
+                  {detectionState === DetectionState.WATCHING && (
                     <div className="absolute bottom-4 left-4 right-4">
                       <div className="bg-black/60 rounded-full p-2">
                         <div className="h-4 bg-gray-700 rounded-full overflow-hidden">
@@ -161,6 +227,45 @@ const MainPage = () => {
               />
             </div>
 
+            {/* FPS Control */}
+            <div className="mb-6">
+              <label className="block text-xl mb-3 font-semibold">
+                ⚡ Frames per second
+              </label>
+              <input
+                type="number"
+                min="0.1"
+                max="30"
+                step="0.1"
+                value={fps}
+                onChange={(e) => setFps(parseFloat(e.target.value) || 1)}
+                className="w-full px-6 py-4 rounded-2xl bg-white/10 border border-white/30 text-xl placeholder-gray-400 focus:outline-none focus:border-yellow-400 focus:bg-white/20 transition-all"
+                disabled={isWatching}
+              />
+            </div>
+
+            {/* Image Quality Control */}
+            <div className="mb-6">
+              <label className="block text-xl mb-3 font-semibold">
+                📷 Image quality: {Math.round(imageQuality * 100)}%
+              </label>
+              <input
+                type="range"
+                min="0.1"
+                max="1"
+                step="0.05"
+                value={imageQuality}
+                onChange={(e) => setImageQuality(parseFloat(e.target.value))}
+                className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer accent-yellow-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isWatching}
+              />
+              <div className="flex justify-between text-sm mt-2 text-gray-300">
+                <span>Low (10%)</span>
+                <span>Medium (50%)</span>
+                <span>High (100%)</span>
+              </div>
+            </div>
+
             {/* Notification Type */}
             <div className="mb-6">
               <label className="block text-xl mb-3 font-semibold">
@@ -187,15 +292,15 @@ const MainPage = () => {
 
             {/* Action Button */}
             <button
-              onClick={startWatching}
-              disabled={!prompt || isWatching}
+              onClick={isWatching ? stopWatching : startWatching}
+              disabled={!prompt && !isWatching}
               className={`w-full py-5 rounded-2xl text-2xl font-bold transition-all transform hover:scale-105 ${
                 isWatching 
-                  ? 'bg-gray-600 cursor-not-allowed' 
+                  ? 'bg-red-600 hover:bg-red-700' 
                   : 'bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 animate-pulse'
               }`}
             >
-              {isWatching ? '👀 Watching...' : '🚀 Start Watching!'}
+              {isWatching ? '🛑 Stop Watching' : '🚀 Start Watching!'}
             </button>
           </div>
 
