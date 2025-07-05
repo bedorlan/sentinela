@@ -68,9 +68,20 @@ const MainPage = () => {
       canvas.height = video.videoHeight;
       context.drawImage(video, 0, 0);
       
-      canvas.toBlob((blob) => {
+      canvas.toBlob(async (blob) => {
         if (blob && wsRef.current.readyState === WebSocket.OPEN) {
-          wsRef.current.send(blob);
+          // Convert blob to ArrayBuffer for MessagePack
+          const arrayBuffer = await blob.arrayBuffer();
+          const uint8Array = new Uint8Array(arrayBuffer);
+          
+          // Pack the data using MessagePack
+          const packed = MessagePack.encode({
+            prompt: prompt,
+            frame: uint8Array
+          });
+          
+          // Send as binary
+          wsRef.current.send(packed);
         }
       }, 'image/jpeg', imageQuality);
     }
