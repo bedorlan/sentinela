@@ -105,6 +105,23 @@ const MainPage = () => {
       captureIntervalRef.current = setInterval(captureFrame, 1000 / fps);
     };
     
+    wsRef.current.onmessage = (event) => {
+      const confidenceScore = parseFloat(event.data);
+      if (isNaN(confidenceScore)) {
+        return;
+      }
+
+      setConfidence(confidenceScore);
+      if (confidenceScore < 80) {
+        return;
+      }
+
+      setDetectionState(DetectionState.DETECTED);
+      setTimeout(() => {
+        setDetectionState(DetectionState.WATCHING);
+      }, 3000);
+    };
+    
     wsRef.current.onerror = (error) => {
       console.error('WebSocket error:', error);
     };

@@ -42,34 +42,40 @@ async def websocket_frames(websocket: WebSocket):
         frame_count = 0
         dropped_frames = 0
         while True:
-            # Receive MessagePack binary data
             packed_data = await websocket.receive_bytes()
             frame_count += 1
             
-            # Decode MessagePack data
             data = msgpack.unpackb(packed_data, raw=False)
             
-            # Extract prompt and frame
             prompt = data.get("prompt", "")
             frame_data = bytes(data.get("frame", []))
             
-            # Analyze frame with AI if prompt is provided
-            if prompt and frame_data:
-                def handle_frame_result(task):
+            if not prompt or not frame_data:
+                continue
+
+            def handle_frame_result(task):
+                try:
+                    processed, ai_response = task.result()
+                    if not processed:
+                        nonlocal dropped_frames
+                        dropped_frames += 1
+                        print(".", end="")
+                        return
+
+                    print(f"\nAI Response: {ai_response}")
+                    if websocket.client_state.value != 1:  # Not connected
+                        return
+                        
                     try:
-                        processed, ai_response = task.result()
-                        if processed:
-                            print(f"\nAI Response: {ai_response}")
-                        else:
-                            nonlocal dropped_frames
-                            dropped_frames += 1
-                            print(".", end="")
-                    except Exception as e:
-                        print(f"  Error processing frame: {e}")
-                
-                # Create task and add callback
-                task = asyncio.create_task(frame_analyzer.process_frame(frame_data, prompt))
-                task.add_done_callback(handle_frame_result)
+                        confidence = float(ai_response.strip())
+                        asyncio.create_task(websocket.send_text(str(confidence)))
+                    except ValueError:
+                        asyncio.create_task(websocket.send_text("0"))
+                except Exception as e:
+                    print(f"Error processing frame: {e}")
+
+            task = asyncio.create_task(frame_analyzer.process_frame(frame_data, prompt))
+            task.add_done_callback(handle_frame_result)
             
     except Exception as e:
         print(f"WebSocket error: {e}")

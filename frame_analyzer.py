@@ -60,8 +60,8 @@ class FrameAnalyzer:
             
             # Create analysis prompt
             analysis_prompt = f"""
-                Analyze this sequence of {len(frames)} video frames and determine if they match this
-                criteria: {prompt}. Respond with a single word: 'YES' if the sequence matches, 'NO' if it doesn't.
+                Analyze these {len(frames)} video frames to check if they match this criteria: {prompt}.
+                Return ONLY a single number; a confidence score between 0 and 100 (higher = more certain match).
             """
             analysis_prompt = ' '.join(analysis_prompt.split())
             
