@@ -14,7 +14,7 @@ const MainPage = () => {
   const [confidence, setConfidence] = useState(0);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [fps, setFps] = useState(1);
-  const [imageQuality, setImageQuality] = useState(0.8);
+  const [imageQuality, setImageQuality] = useState(0.9);
   const cameraRef = React.useRef(null);
   const canvasRef = React.useRef(null);
   const wsRef = React.useRef(null);
