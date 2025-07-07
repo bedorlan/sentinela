@@ -7,11 +7,12 @@ import asyncio
 import msgpack
 import os
 
-from frame_analyzer import FrameAnalyzer
+from src.google_ai_studio_inference import GoogleAIStudioInference
+from src.inference_engine import InferenceEngine
 
 app = FastAPI()
 security = HTTPBasic()
-frame_analyzer = FrameAnalyzer()
+inference_engine: InferenceEngine = GoogleAIStudioInference()
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -73,7 +74,7 @@ async def websocket_frames(websocket: WebSocket):
                 except Exception as e:
                     print(f"Error processing frame: {e}")
 
-            task = asyncio.create_task(frame_analyzer.process_frame(frame_data, prompt))
+            task = asyncio.create_task(inference_engine.process_frame(frame_data, prompt))
             task.add_done_callback(handle_frame_result)
             
     except Exception as e:

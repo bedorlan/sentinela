@@ -5,8 +5,10 @@ import io
 import os
 import re
 
+from .inference_engine import InferenceEngine
 
-class FrameAnalyzer:
+
+class GoogleAIStudioInference(InferenceEngine):
     def __init__(self):
         self.google_api_key = os.getenv("GOOGLE_API_KEY")
         self.analysis_in_progress = False
