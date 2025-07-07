@@ -3,8 +3,8 @@ from typing import Tuple, Optional
 import google.generativeai as genai
 import io
 import os
-import re
 
+from . import util
 from .inference_engine import InferenceEngine
 
 
@@ -45,7 +45,7 @@ class GoogleAIStudioInference(InferenceEngine):
             ai_response = await self._analyze_frame_with_ai([frame_data], prompt)
             print(f"\nAI Response: {ai_response}")
 
-            score = self._extract_score(ai_response)            
+            score = util.extract_score(ai_response)            
             return True, str(score)
         finally:
             self.analysis_in_progress = False
@@ -65,14 +65,7 @@ class GoogleAIStudioInference(InferenceEngine):
                 content.append(image_data)
             
             # Create analysis prompt
-            analysis_prompt = f"""
-                Analyze the frames for: {prompt}
-                Response format: |score|reason|
-                score: 0-100 confidence
-                reason: one sentence explanation
-            """
-            analysis_prompt = re.sub(r'\n\s+', '\n', analysis_prompt)
-            
+            analysis_prompt = util.create_analysis_prompt(prompt)
             content.append(analysis_prompt)
             
             # Generate response using async API
@@ -91,26 +84,6 @@ class GoogleAIStudioInference(InferenceEngine):
         except Exception as e:
             return f"AI analysis error: {str(e)}"
         
-    def _extract_score(self, response: str) -> int:
-        """Extract score from AI response"""
-        try:
-            match = re.search(r'\|(\d+)\|([^|]+)\|', response)
-            if match:
-                score = int(match.group(1))
-                reason = match.group(2)
-                print(f"score={score}")
-                return score
-            
-            digits = re.findall(r'\d+', response)
-            if digits:
-                print(f"digits={digits}")
-                return int(digits[0])
-            
-            return 0
-            
-        except Exception as e:
-            print(f"Error extracting score: {e}")
-            return 0
     
     def _resize_frame(self, frame_data: bytes, target_width: int = 768) -> bytes:
         """Resize frame to target width while maintaining aspect ratio"""
