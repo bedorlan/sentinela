@@ -264,6 +264,11 @@ const MainPage = () => {
                 type="text"
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && prompt && !isWatching) {
+                    startWatching();
+                  }
+                }}
                 placeholder={placeholders[placeholderIndex]}
                 className="w-full px-6 py-4 rounded-2xl bg-white/10 border border-white/30 text-xl placeholder-gray-400 focus:outline-none focus:border-yellow-400 focus:bg-white/20 transition-all"
                 disabled={isWatching}
