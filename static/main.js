@@ -15,10 +15,17 @@ const MainPage = () => {
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [fps, setFps] = useState(1);
   const [imageQuality, setImageQuality] = useState(0.9);
+  const [enabledNotifications, setEnabledNotifications] = useState({ 
+    sound: true,
+    email: false,
+    sms: false,
+    webhook: false 
+  });
   const cameraRef = React.useRef(null);
   const canvasRef = React.useRef(null);
   const wsRef = React.useRef(null);
   const captureIntervalRef = React.useRef(null);
+  const detectionSoundRef = React.useRef(null);
 
   const placeholders = [
     "Tell me when my cat enters the room... 🐱",
@@ -34,6 +41,11 @@ const MainPage = () => {
       setPlaceholderIndex((prev) => (prev + 1) % placeholders.length);
     }, 3000);
     return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    detectionSoundRef.current = new Audio('/static/sound/detected.mp3');
+    detectionSoundRef.current.preload = 'auto';
   }, []);
 
   useEffect(() => {
@@ -117,6 +129,9 @@ const MainPage = () => {
       }
 
       setDetectionState(DetectionState.DETECTED);
+      if (enabledNotifications.sound && detectionSoundRef.current) {
+        detectionSoundRef.current.play().catch(e => console.error('Failed to play sound:', e));
+      }
       setTimeout(() => {
         setDetectionState(DetectionState.WATCHING);
       }, 3000);
@@ -301,14 +316,21 @@ const MainPage = () => {
               </label>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {[
-                  { icon: '🔊', label: 'Sound' },
-                  { icon: '📧', label: 'Email' },
-                  { icon: '💬', label: 'SMS' },
-                  { icon: '🔗', label: 'Webhook' }
+                  { icon: '🔊', label: 'Sound', key: 'sound' },
+                  { icon: '📧', label: 'Email', key: 'email' },
+                  { icon: '💬', label: 'SMS', key: 'sms' },
+                  { icon: '🔗', label: 'Webhook', key: 'webhook' }
                 ].map((option) => (
                   <button
                     key={option.label}
-                    className="p-4 rounded-xl bg-white/10 hover:bg-white/20 border border-white/30 transition-all hover:scale-105"
+                    onClick={() => {
+                      setEnabledNotifications(prev => ({ ...prev, [option.key]: !prev[option.key] }));
+                    }}
+                    className={`p-4 rounded-xl border transition-all hover:scale-105 ${
+                      enabledNotifications[option.key]
+                        ? 'bg-yellow-400/30 border-yellow-400 hover:bg-yellow-400/40'
+                        : 'bg-white/10 hover:bg-white/20 border-white/30'
+                    }`}
                     disabled={isWatching}
                   >
                     <p className="text-2xl mb-1">{option.icon}</p>

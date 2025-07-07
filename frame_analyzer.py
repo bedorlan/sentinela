@@ -65,11 +65,11 @@ class FrameAnalyzer:
             # Create analysis prompt
             analysis_prompt = f"""
                 Analyze the frames for: {prompt}
-                Response format: score|reason
-                score: 0-100 confidence  
+                Response format: |score|reason|
+                score: 0-100 confidence
                 reason: one sentence explanation
             """
-            analysis_prompt = re.sub(r'^\s+', '', analysis_prompt)
+            analysis_prompt = re.sub(r'\n\s+', '\n', analysis_prompt)
             
             content.append(analysis_prompt)
             
@@ -92,16 +92,16 @@ class FrameAnalyzer:
     def _extract_score(self, response: str) -> int:
         """Extract score from AI response"""
         try:
-            if '|' in response:
-                parts = response.strip().split('|', 1)
-                if len(parts) >= 1:
-                    score_part = parts[0].strip()
-                    score_match = re.search(r'\d+', score_part)
-                    if score_match:
-                        return int(score_match.group())
+            match = re.search(r'\|(\d+)\|([^|]+)\|', response)
+            if match:
+                score = int(match.group(1))
+                reason = match.group(2)
+                print(f"score={score}")
+                return score
             
             digits = re.findall(r'\d+', response)
             if digits:
+                print(f"digits={digits}")
                 return int(digits[0])
             
             return 0
