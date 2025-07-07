@@ -3,6 +3,7 @@ from typing import Tuple, Optional
 import google.generativeai as genai
 import io
 import os
+import re
 
 
 class FrameAnalyzer:
@@ -11,7 +12,7 @@ class FrameAnalyzer:
         self.analysis_in_progress = False
         self.model = None
         # self.model_name = 'models/gemma-3n-e4b-it'
-        self.model_name = 'models/gemma-3-12b-it'
+        self.model_name = 'models/gemma-3-27b-it' # available parameters: 1,4,12,27
         self._initialize_model()
     
     def _initialize_model(self):
@@ -40,7 +41,10 @@ class FrameAnalyzer:
         
         try:
             ai_response = await self._analyze_frame_with_ai([frame_data], prompt)
-            return True, ai_response
+            print(f"\nAI Response: {ai_response}")
+
+            score = self._extract_score(ai_response)            
+            return True, str(score)
         finally:
             self.analysis_in_progress = False
 
@@ -60,10 +64,12 @@ class FrameAnalyzer:
             
             # Create analysis prompt
             analysis_prompt = f"""
-                Analyze these {len(frames)} video frames to check if they match this criteria: {prompt}.
-                Return ONLY a single number; a confidence score between 0 and 100 (higher = more certain match).
+                Analyze the frames for: {prompt}
+                Response format: score|reason
+                score: 0-100 confidence  
+                reason: one sentence explanation
             """
-            analysis_prompt = ' '.join(analysis_prompt.split())
+            analysis_prompt = re.sub(r'^\s+', '', analysis_prompt)
             
             content.append(analysis_prompt)
             
@@ -82,6 +88,27 @@ class FrameAnalyzer:
             return response.text
         except Exception as e:
             return f"AI analysis error: {str(e)}"
+        
+    def _extract_score(self, response: str) -> int:
+        """Extract score from AI response"""
+        try:
+            if '|' in response:
+                parts = response.strip().split('|', 1)
+                if len(parts) >= 1:
+                    score_part = parts[0].strip()
+                    score_match = re.search(r'\d+', score_part)
+                    if score_match:
+                        return int(score_match.group())
+            
+            digits = re.findall(r'\d+', response)
+            if digits:
+                return int(digits[0])
+            
+            return 0
+            
+        except Exception as e:
+            print(f"Error extracting score: {e}")
+            return 0
     
     def _resize_frame(self, frame_data: bytes, target_width: int = 768) -> bytes:
         """Resize frame to target width while maintaining aspect ratio"""

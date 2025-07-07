@@ -62,7 +62,6 @@ async def websocket_frames(websocket: WebSocket):
                         print(".", end="")
                         return
 
-                    print(f"\nAI Response: {ai_response}")
                     if websocket.client_state.value != 1:  # Not connected
                         return
                         
