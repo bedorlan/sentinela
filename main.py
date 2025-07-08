@@ -39,6 +39,10 @@ def authenticate(credentials: HTTPBasicCredentials = Depends(security)):
 async def read_root(username: str = Depends(authenticate)):
     return FileResponse("static/index.html")
 
+@app.get("/favicon.ico")
+async def read_icon():
+    return FileResponse("static/favicon.ico")
+
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
