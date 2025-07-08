@@ -93,7 +93,7 @@ async def websocket_frames(websocket: WebSocket):
     finally:
         print(f"WebSocket connection closed at {datetime.now()}")
         print(f"Total frames received: {frame_count}")
-        print(f"Total frames dropped: {dropped_frames}")
+        print(f"Total frames processed: {frame_count - dropped_frames}")
 
 if __name__ == "__main__":
     import uvicorn

@@ -8,10 +8,14 @@ def create_analysis_prompt(prompt: str) -> str:
     Create a standardized analysis prompt for AI models.
     """
     analysis_prompt = f"""
-        Analyze the frames for: {prompt}
-        Response format: |score|reason|
-        score: 0-100 confidence
-        reason: one sentence explanation
+    You are a sentinel watching for: {prompt}.
+    Rate how well the frames match what you are watching.
+
+    Respond ONLY in this format: |rate|reason|
+    - rate: 0-100 (0=no match, 100=perfect match)
+    - reason: one concise sentence explaining the rate
+
+    Example: |85|Person wearing red shirt is clearly visible in center of frame|
     """
     return re.sub(r'\n\s+', '\n', analysis_prompt)
 
