@@ -12,6 +12,7 @@ const MainPage = () => {
   const [isWatching, setIsWatching] = useState(false);
   const [detectionState, setDetectionState] = useState(DetectionState.IDLE);
   const [confidence, setConfidence] = useState(0);
+  const [confidenceReason, setConfidenceReason] = useState('');
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [fps, setFps] = useState(1);
   const [imageQuality, setImageQuality] = useState(0.9);
@@ -118,23 +119,51 @@ const MainPage = () => {
     };
     
     wsRef.current.onmessage = (event) => {
-      const confidenceScore = parseFloat(event.data);
-      if (isNaN(confidenceScore)) {
-        return;
-      }
+      try {
+        const data = JSON.parse(event.data);
+        const confidenceScore = parseFloat(data.confidence || event.data);
+        const reasonText = data.reason || '';
+        
+        if (isNaN(confidenceScore)) {
+          return;
+        }
 
-      setConfidence(confidenceScore);
-      if (confidenceScore < 80) {
-        return;
-      }
+        setConfidence(confidenceScore);
+        setConfidenceReason(reasonText);
+        console.log('Updated confidence:', confidenceScore, 'reason:', reasonText);
+        
+        if (confidenceScore < 80) {
+          return;
+        }
 
-      setDetectionState(DetectionState.DETECTED);
-      if (enabledNotifications.sound && detectionSoundRef.current) {
-        detectionSoundRef.current.play().catch(e => console.error('Failed to play sound:', e));
+        setDetectionState(DetectionState.DETECTED);
+        if (enabledNotifications.sound && detectionSoundRef.current) {
+          detectionSoundRef.current.play().catch(e => console.error('Failed to play sound:', e));
+        }
+        setTimeout(() => {
+          setDetectionState(DetectionState.WATCHING);
+        }, 3000);
+      } catch (e) {
+        const confidenceScore = parseFloat(event.data);
+        if (isNaN(confidenceScore)) {
+          return;
+        }
+
+        setConfidence(confidenceScore);
+        setConfidenceReason('');
+        
+        if (confidenceScore < 80) {
+          return;
+        }
+
+        setDetectionState(DetectionState.DETECTED);
+        if (enabledNotifications.sound && detectionSoundRef.current) {
+          detectionSoundRef.current.play().catch(e => console.error('Failed to play sound:', e));
+        }
+        setTimeout(() => {
+          setDetectionState(DetectionState.WATCHING);
+        }, 3000);
       }
-      setTimeout(() => {
-        setDetectionState(DetectionState.WATCHING);
-      }, 3000);
     };
     
     wsRef.current.onerror = (error) => {
@@ -153,6 +182,7 @@ const MainPage = () => {
     setIsWatching(false);
     setDetectionState(DetectionState.IDLE);
     setConfidence(0);
+    setConfidenceReason('');
     console.log('Stopped watching');
     
     // Stop capturing frames
@@ -253,6 +283,15 @@ const MainPage = () => {
               )}
             </div>
           </div>
+
+          {/* Confidence Reason Alert */}
+          {confidenceReason && detectionState === DetectionState.WATCHING && (
+            <div className="bg-blue-900/30 backdrop-blur rounded-2xl px-6 py-3 mb-6 border border-blue-400/30 animate-opacity">
+              <p className="text-center text-blue-200 text-sm">
+                {confidenceReason}
+              </p>
+            </div>
+          )}
 
           {/* Magic Input */}
           <div className="bg-white/10 backdrop-blur rounded-3xl p-8 border border-white/20">
@@ -400,6 +439,15 @@ const MainPage = () => {
         
         .animate-zoomIn {
           animation: zoomIn 0.5s ease-out;
+        }
+        
+        .animate-opacity {
+          animation: fadeIn 0.3s ease-in;
+        }
+        
+        @keyframes fadeIn {
+          0% { opacity: 0; }
+          100% { opacity: 1; }
         }
       `}</style>
     </div>
