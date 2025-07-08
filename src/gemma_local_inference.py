@@ -14,7 +14,7 @@ class GemmaLocalInference(InferenceEngine):
     def __init__(self):
         self.analysis_in_progress = False
         self.pipe = None
-        self.model_name = "google/gemma-3n-e2b-it"
+        self.model_name = "google/gemma-3n-e4b-it"
         self._initialize_model()
     
     def _initialize_model(self):
@@ -69,15 +69,13 @@ class GemmaLocalInference(InferenceEngine):
     
     def _run_inference(self, frame_data: bytes, prompt: str) -> str:
         try:
-            image = Image.open(io.BytesIO(frame_data))
-            
+            resized_frame_data = util.resize_frame(frame_data)
+            image = Image.open(io.BytesIO(resized_frame_data))
             analysis_prompt = util.create_analysis_prompt(prompt)
-            
             content = [
-                {"type": "image", "url": image},
-                {"type": "text", "text": analysis_prompt}
+                {"type": "image", "image": image},
+                {"type": "text", "text": analysis_prompt},
             ]
-            
             messages = [
                 {
                     "role": "user",

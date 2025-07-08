@@ -1,3 +1,5 @@
+from PIL import Image
+import io
 import re
 
 
@@ -37,4 +39,25 @@ def extract_score_and_reason(response: str) -> tuple[int, str]:
         print(f"Error extracting score: {e}")
         return 0, ""
 
-
+def resize_frame(frame_data: bytes, target_width: int = 768) -> bytes:
+    """Resize frame to target width while maintaining aspect ratio"""
+    try:
+        image = Image.open(io.BytesIO(frame_data))
+        
+        original_width, original_height = image.size
+        
+        if original_width <= target_width:
+            return frame_data
+        
+        aspect_ratio = original_height / original_width
+        new_height = int(target_width * aspect_ratio)
+        
+        resized_image = image.resize((target_width, new_height), Image.Resampling.LANCZOS)
+        
+        output_buffer = io.BytesIO()
+        resized_image.save(output_buffer, format='JPEG', quality=90)
+        return output_buffer.getvalue()
+        
+    except Exception as e:
+        print(f"Error resizing frame: {e}")
+        return frame_data

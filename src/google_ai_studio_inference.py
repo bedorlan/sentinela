@@ -1,7 +1,5 @@
-from PIL import Image
 from typing import Tuple, Optional
 import google.generativeai as genai
-import io
 import os
 
 from . import util
@@ -57,7 +55,7 @@ class GoogleAIStudioInference(InferenceEngine):
             content = []
             for frame_data in frames:
                 # Resize frame before processing
-                resized_frame_data = self._resize_frame(frame_data)
+                resized_frame_data = util.resize_frame(frame_data)
                 image_data = {
                     'mime_type': 'image/jpeg',
                     'data': resized_frame_data
@@ -85,25 +83,3 @@ class GoogleAIStudioInference(InferenceEngine):
             return f"AI analysis error: {str(e)}"
         
     
-    def _resize_frame(self, frame_data: bytes, target_width: int = 768) -> bytes:
-        """Resize frame to target width while maintaining aspect ratio"""
-        try:
-            # Open image from bytes
-            image = Image.open(io.BytesIO(frame_data))
-            
-            # Calculate new dimensions
-            original_width, original_height = image.size
-            aspect_ratio = original_height / original_width
-            new_height = int(target_width * aspect_ratio)
-            
-            # Resize image
-            resized_image = image.resize((target_width, new_height), Image.Resampling.LANCZOS)
-            
-            # Convert back to bytes
-            output_buffer = io.BytesIO()
-            resized_image.save(output_buffer, format='JPEG', quality=90)
-            return output_buffer.getvalue()
-            
-        except Exception as e:
-            print(f"Error resizing frame: {e}")
-            return frame_data  # Return original if resize fails
