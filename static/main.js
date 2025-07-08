@@ -119,43 +119,28 @@ const MainPage = () => {
     };
     
     wsRef.current.onmessage = (event) => {
+    
+      let newConfidence = 0;
+      let newReason = confidenceReason; 
+      
       try {
         const data = JSON.parse(event.data);
-        const confidenceScore = parseFloat(data.confidence || event.data);
-        const reasonText = data.reason || '';
+        newConfidence = parseFloat(data.confidence || 0);
         
-        if (isNaN(confidenceScore)) {
-          return;
+        if (data.reason) {
+          newReason = data.reason;
         }
-
-        setConfidence(confidenceScore);
-        setConfidenceReason(reasonText);
-        console.log('Updated confidence:', confidenceScore, 'reason:', reasonText);
-        
-        if (confidenceScore < 80) {
-          return;
-        }
-
-        setDetectionState(DetectionState.DETECTED);
-        if (enabledNotifications.sound && detectionSoundRef.current) {
-          detectionSoundRef.current.play().catch(e => console.error('Failed to play sound:', e));
-        }
-        setTimeout(() => {
-          setDetectionState(DetectionState.WATCHING);
-        }, 3000);
       } catch (e) {
-        const confidenceScore = parseFloat(event.data);
-        if (isNaN(confidenceScore)) {
-          return;
-        }
-
-        setConfidence(confidenceScore);
-        setConfidenceReason('');
-        
-        if (confidenceScore < 80) {
-          return;
-        }
-
+  
+        newConfidence = parseFloat(event.data) || 0;
+      }
+      
+      setConfidence(newConfidence);
+      setConfidenceReason(newReason);
+      console.log('Updated confidence:', newConfidence, 'reason:', newReason);
+      
+    
+      if (newConfidence >= 80) {
         setDetectionState(DetectionState.DETECTED);
         if (enabledNotifications.sound && detectionSoundRef.current) {
           detectionSoundRef.current.play().catch(e => console.error('Failed to play sound:', e));
@@ -285,7 +270,7 @@ const MainPage = () => {
           </div>
 
           {/* Confidence Reason Alert */}
-          {confidenceReason && detectionState === DetectionState.WATCHING && (
+          {confidenceReason && (
             <div className="bg-blue-900/30 backdrop-blur rounded-2xl px-6 py-3 mb-6 border border-blue-400/30 animate-opacity">
               <p className="text-center text-blue-200 text-sm">
                 {confidenceReason}
