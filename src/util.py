@@ -38,10 +38,3 @@ def extract_score_and_reason(response: str) -> tuple[int, str]:
         return 0, ""
 
 
-def extract_score(response: str) -> int:
-    """
-    Extract confidence score from AI model response.
-    Kept for backward compatibility.
-    """
-    score, _ = extract_score_and_reason(response)
-    return score

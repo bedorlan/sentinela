@@ -120,7 +120,7 @@ const MainPage = () => {
     
     wsRef.current.onmessage = async (event) => {
       let newConfidence = 0;
-      let newReason = confidenceReason; 
+      let newReason = '';
       
       try {
     
@@ -128,12 +128,12 @@ const MainPage = () => {
         const data = MessagePack.decode(new Uint8Array(arrayBuffer));
         
         newConfidence = parseFloat(data.confidence || 0);
+        newReason = data.reason || confidenceReason; // Keep previous if no new reason
         
-        if (data.reason) {
-          newReason = data.reason;
-        }
       } catch (e) {
         console.error('Error decoding MessagePack:', e);
+        // On error, keep the previous reason
+        newReason = confidenceReason;
       }
       
       setConfidence(newConfidence);
