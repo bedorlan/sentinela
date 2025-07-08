@@ -215,7 +215,7 @@ const MainPage = () => {
         {/* Main Content */}
         <div className="max-w-4xl mx-auto">
           {/* Video Feed */}
-          <div className="bg-black/30 backdrop-blur rounded-3xl p-8 mb-8 border border-white/20">
+          <div className="bg-black/30 backdrop-blur rounded-3xl p-8 mb-3 border border-white/20">
             <div className="aspect-video bg-black/50 rounded-2xl flex items-center justify-center relative overflow-hidden">
               <video
                 ref={cameraRef}
@@ -269,12 +269,15 @@ const MainPage = () => {
             </div>
           </div>
 
-          {/* Confidence Reason Alert */}
+          {/* Confidence Reason Alert - Píldora Style */}
           {confidenceReason && (
-            <div className="bg-blue-900/30 backdrop-blur rounded-2xl px-6 py-3 mb-6 border border-blue-400/30 animate-opacity">
-              <p className="text-center text-blue-200 text-sm">
-                {confidenceReason}
-              </p>
+            <div className="flex justify-center mb-2 animate-fadeIn">
+              <div className="bg-black/40 backdrop-blur rounded-full px-6 py-3 flex items-center space-x-3 max-w-2xl">
+                <span className="text-lg">💬</span>
+                <p className="text-yellow-200 text-sm italic font-light">
+                  {confidenceReason}
+                </p>
+              </div>
             </div>
           )}
 
@@ -426,7 +429,7 @@ const MainPage = () => {
           animation: zoomIn 0.5s ease-out;
         }
         
-        .animate-opacity {
+        .animate-fadeIn {
           animation: fadeIn 0.3s ease-in;
         }
         
