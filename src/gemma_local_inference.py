@@ -53,8 +53,8 @@ class GemmaLocalInference(InferenceEngine):
             ai_response = await self._analyze_frame_with_model(frame_data, prompt)
             print(f"\nModel Response: {ai_response}")
             
-            score = util.extract_score(ai_response)
-            return True, str(score)
+            score, reason = util.extract_score_and_reason(ai_response)
+            return True, (score, reason)
         finally:
             self.analysis_in_progress = False
     

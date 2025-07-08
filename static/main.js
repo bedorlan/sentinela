@@ -7,11 +7,14 @@ const DetectionState = {
   DETECTED: 'detected'
 };
 
+const DETECTION_THRESHOLD = 90;
+
 const MainPage = () => {
   const [prompt, setPrompt] = useState('');
   const [isWatching, setIsWatching] = useState(false);
   const [detectionState, setDetectionState] = useState(DetectionState.IDLE);
   const [confidence, setConfidence] = useState(0);
+  const [reason, setReason] = useState('');
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [fps, setFps] = useState(1);
   const [imageQuality, setImageQuality] = useState(0.9);
@@ -102,6 +105,7 @@ const MainPage = () => {
   const startWatching = () => {
     setIsWatching(true);
     setDetectionState(DetectionState.WATCHING);
+    setReason(''); 
     console.log(`Starting to watch for: ${prompt}`);
     console.log(`FPS: ${fps}`);
     console.log(`Image Quality: ${imageQuality}`);
@@ -117,24 +121,35 @@ const MainPage = () => {
       captureIntervalRef.current = setInterval(captureFrame, 1000 / fps);
     };
     
-    wsRef.current.onmessage = (event) => {
-      const confidenceScore = parseFloat(event.data);
-      if (isNaN(confidenceScore)) {
-        return;
+    wsRef.current.onmessage = async (event) => {
+      let newConfidence = 0;
+      let newReason = '';
+      
+      try {
+    
+        const arrayBuffer = await event.data.arrayBuffer();
+        const data = MessagePack.decode(new Uint8Array(arrayBuffer));
+        
+        newConfidence = parseFloat(data.confidence || 0);
+        newReason = data.reason || reason; // Keep previous if no new reason
+        
+      } catch (e) {
+        console.error('Error decoding MessagePack:', e);
+        // On error, keep the previous reason
+        newReason = reason;
       }
-
-      setConfidence(confidenceScore);
-      if (confidenceScore < 80) {
-        return;
+      
+      setConfidence(newConfidence);
+      setReason(newReason);
+      if (newConfidence >= DETECTION_THRESHOLD) {
+        setDetectionState(DetectionState.DETECTED);
+        if (enabledNotifications.sound && detectionSoundRef.current) {
+          detectionSoundRef.current.play().catch(e => console.error('Failed to play sound:', e));
+        }
+        setTimeout(() => {
+          setDetectionState(DetectionState.WATCHING);
+        }, 3000);
       }
-
-      setDetectionState(DetectionState.DETECTED);
-      if (enabledNotifications.sound && detectionSoundRef.current) {
-        detectionSoundRef.current.play().catch(e => console.error('Failed to play sound:', e));
-      }
-      setTimeout(() => {
-        setDetectionState(DetectionState.WATCHING);
-      }, 3000);
     };
     
     wsRef.current.onerror = (error) => {
@@ -200,7 +215,7 @@ const MainPage = () => {
         {/* Main Content */}
         <div className="max-w-4xl mx-auto">
           {/* Video Feed */}
-          <div className="bg-black/30 backdrop-blur rounded-3xl p-8 mb-8 border border-white/20">
+          <div className="bg-black/30 backdrop-blur rounded-3xl p-8 mb-3 border border-white/20">
             <div className="aspect-video bg-black/50 rounded-2xl flex items-center justify-center relative overflow-hidden">
               <video
                 ref={cameraRef}
@@ -253,6 +268,24 @@ const MainPage = () => {
               )}
             </div>
           </div>
+
+          {/* Confidence Reason Alert - Píldora Style */}
+          {reason && (
+            <div className="flex justify-center mb-2 animate-fadeIn">
+              <div className={`backdrop-blur-lg rounded-full px-6 py-3 flex items-center space-x-3 max-w-2xl shadow-lg ${
+                confidence >= DETECTION_THRESHOLD 
+                  ? 'bg-gradient-to-r from-yellow-400/20 to-green-400/20 border border-yellow-400/30' 
+                  : 'bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-blue-400/30'
+              }`}>
+                <span className="text-lg">{confidence >= DETECTION_THRESHOLD ? '⭐' : '🔍'}</span>
+                <p className={`text-sm italic font-light ${
+                  confidence >= DETECTION_THRESHOLD ? 'text-yellow-200' : 'text-blue-200'
+                }`}>
+                  {reason}
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Magic Input */}
           <div className="bg-white/10 backdrop-blur rounded-3xl p-8 border border-white/20">
@@ -400,6 +433,15 @@ const MainPage = () => {
         
         .animate-zoomIn {
           animation: zoomIn 0.5s ease-out;
+        }
+        
+        .animate-fadeIn {
+          animation: fadeIn 0.3s ease-in;
+        }
+        
+        @keyframes fadeIn {
+          0% { opacity: 0; }
+          100% { opacity: 1; }
         }
       `}</style>
     </div>

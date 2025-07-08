@@ -75,11 +75,13 @@ async def websocket_frames(websocket: WebSocket):
                     if websocket.client_state.value != 1:  # Not connected
                         return
                         
-                    try:
-                        confidence = float(ai_response.strip())
-                        asyncio.create_task(websocket.send_text(str(confidence)))
-                    except ValueError:
-                        asyncio.create_task(websocket.send_text("0"))
+                    confidence, reason = ai_response
+                    response_data = {
+                        "confidence": confidence,
+                        "reason": reason
+                    }
+                    packed_response = msgpack.packb(response_data)
+                    asyncio.create_task(websocket.send_bytes(packed_response))
                 except Exception as e:
                     print(f"Error processing frame: {e}")
 
