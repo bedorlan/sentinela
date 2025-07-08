@@ -272,9 +272,15 @@ const MainPage = () => {
           {/* Confidence Reason Alert - Píldora Style */}
           {confidenceReason && (
             <div className="flex justify-center mb-2 animate-fadeIn">
-              <div className="bg-black/40 backdrop-blur rounded-full px-6 py-3 flex items-center space-x-3 max-w-2xl">
-                <span className="text-lg">💬</span>
-                <p className="text-yellow-200 text-sm italic font-light">
+              <div className={`backdrop-blur-lg rounded-full px-6 py-3 flex items-center space-x-3 max-w-2xl shadow-lg ${
+                confidence >= 80 
+                  ? 'bg-gradient-to-r from-yellow-400/20 to-green-400/20 border border-yellow-400/30' 
+                  : 'bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-blue-400/30'
+              }`}>
+                <span className="text-lg">{confidence >= 80 ? '⭐' : '🔍'}</span>
+                <p className={`text-sm italic font-light ${
+                  confidence >= 80 ? 'text-yellow-200' : 'text-blue-200'
+                }`}>
                   {confidenceReason}
                 </p>
               </div>
