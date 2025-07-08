@@ -5,6 +5,7 @@ from typing import Tuple, Optional
 import asyncio
 import io
 import os
+import torch
 
 from . import util
 from .inference_engine import InferenceEngine
@@ -15,6 +16,7 @@ class GemmaLocalInference(InferenceEngine):
         self.analysis_in_progress = False
         self.pipe = None
         self.model_name = "google/gemma-3n-e4b-it"
+        # self.model_name = "unsloth/gemma-3n-e4b-it-unsloth-bnb-4bit"
         self._initialize_model()
     
     def _initialize_model(self):
@@ -37,6 +39,10 @@ class GemmaLocalInference(InferenceEngine):
                 torch_dtype="auto",
                 trust_remote_code=True,
             )
+
+            if hasattr(torch, 'compile'):
+                print("Compiling model...")
+                self.pipe.model = torch.compile(self.pipe.model, mode="max-autotune")
 
         except Exception as e:
             print(f"ERROR: Failed to load Gemma model: {str(e)}")
