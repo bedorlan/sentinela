@@ -7,12 +7,14 @@ const DetectionState = {
   DETECTED: 'detected'
 };
 
+const DETECTION_THRESHOLD = 90;
+
 const MainPage = () => {
   const [prompt, setPrompt] = useState('');
   const [isWatching, setIsWatching] = useState(false);
   const [detectionState, setDetectionState] = useState(DetectionState.IDLE);
   const [confidence, setConfidence] = useState(0);
-  const [confidenceReason, setConfidenceReason] = useState('');
+  const [reason, setReason] = useState('');
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [fps, setFps] = useState(1);
   const [imageQuality, setImageQuality] = useState(0.9);
@@ -103,6 +105,7 @@ const MainPage = () => {
   const startWatching = () => {
     setIsWatching(true);
     setDetectionState(DetectionState.WATCHING);
+    setReason(''); 
     console.log(`Starting to watch for: ${prompt}`);
     console.log(`FPS: ${fps}`);
     console.log(`Image Quality: ${imageQuality}`);
@@ -128,18 +131,17 @@ const MainPage = () => {
         const data = MessagePack.decode(new Uint8Array(arrayBuffer));
         
         newConfidence = parseFloat(data.confidence || 0);
-        newReason = data.reason || confidenceReason; // Keep previous if no new reason
+        newReason = data.reason || reason; // Keep previous if no new reason
         
       } catch (e) {
         console.error('Error decoding MessagePack:', e);
         // On error, keep the previous reason
-        newReason = confidenceReason;
+        newReason = reason;
       }
       
       setConfidence(newConfidence);
-      setConfidenceReason(newReason);
-      console.log('Updated confidence:', newConfidence, 'reason:', newReason);
-      if (newConfidence >= 80) {
+      setReason(newReason);
+      if (newConfidence >= DETECTION_THRESHOLD) {
         setDetectionState(DetectionState.DETECTED);
         if (enabledNotifications.sound && detectionSoundRef.current) {
           detectionSoundRef.current.play().catch(e => console.error('Failed to play sound:', e));
@@ -166,7 +168,6 @@ const MainPage = () => {
     setIsWatching(false);
     setDetectionState(DetectionState.IDLE);
     setConfidence(0);
-    setConfidenceReason('');
     console.log('Stopped watching');
     
     // Stop capturing frames
@@ -269,18 +270,18 @@ const MainPage = () => {
           </div>
 
           {/* Confidence Reason Alert - Píldora Style */}
-          {confidenceReason && (
+          {reason && (
             <div className="flex justify-center mb-2 animate-fadeIn">
               <div className={`backdrop-blur-lg rounded-full px-6 py-3 flex items-center space-x-3 max-w-2xl shadow-lg ${
-                confidence >= 80 
+                confidence >= DETECTION_THRESHOLD 
                   ? 'bg-gradient-to-r from-yellow-400/20 to-green-400/20 border border-yellow-400/30' 
                   : 'bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-blue-400/30'
               }`}>
-                <span className="text-lg">{confidence >= 80 ? '⭐' : '🔍'}</span>
+                <span className="text-lg">{confidence >= DETECTION_THRESHOLD ? '⭐' : '🔍'}</span>
                 <p className={`text-sm italic font-light ${
-                  confidence >= 80 ? 'text-yellow-200' : 'text-blue-200'
+                  confidence >= DETECTION_THRESHOLD ? 'text-yellow-200' : 'text-blue-200'
                 }`}>
-                  {confidenceReason}
+                  {reason}
                 </p>
               </div>
             </div>
