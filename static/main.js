@@ -118,28 +118,27 @@ const MainPage = () => {
       captureIntervalRef.current = setInterval(captureFrame, 1000 / fps);
     };
     
-    wsRef.current.onmessage = (event) => {
-    
+    wsRef.current.onmessage = async (event) => {
       let newConfidence = 0;
       let newReason = confidenceReason; 
       
       try {
-        const data = JSON.parse(event.data);
+    
+        const arrayBuffer = await event.data.arrayBuffer();
+        const data = MessagePack.decode(new Uint8Array(arrayBuffer));
+        
         newConfidence = parseFloat(data.confidence || 0);
         
         if (data.reason) {
           newReason = data.reason;
         }
       } catch (e) {
-  
-        newConfidence = parseFloat(event.data) || 0;
+        console.error('Error decoding MessagePack:', e);
       }
       
       setConfidence(newConfidence);
       setConfidenceReason(newReason);
       console.log('Updated confidence:', newConfidence, 'reason:', newReason);
-      
-    
       if (newConfidence >= 80) {
         setDetectionState(DetectionState.DETECTED);
         if (enabledNotifications.sound && detectionSoundRef.current) {

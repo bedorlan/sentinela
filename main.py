@@ -6,7 +6,6 @@ from fastapi.staticfiles import StaticFiles
 import asyncio
 import msgpack
 import os
-import json
 
 from src.gemma_local_inference import GemmaLocalInference
 from src.google_ai_studio_inference import GoogleAIStudioInference
@@ -82,7 +81,8 @@ async def websocket_frames(websocket: WebSocket):
                             "confidence": confidence,
                             "reason": reason
                         }
-                        asyncio.create_task(websocket.send_text(json.dumps(response_data)))
+                        packed_response = msgpack.packb(response_data)
+                        asyncio.create_task(websocket.send_bytes(packed_response))
                     except (ValueError, TypeError):
                         try:
                             confidence = float(ai_response.strip())
@@ -90,13 +90,15 @@ async def websocket_frames(websocket: WebSocket):
                                 "confidence": confidence,
                                 "reason": ""
                             }
-                            asyncio.create_task(websocket.send_text(json.dumps(response_data)))
+                            packed_response = msgpack.packb(response_data)
+                            asyncio.create_task(websocket.send_bytes(packed_response))
                         except ValueError:
                             response_data = {
                                 "confidence": 0,
                                 "reason": ""
                             }
-                            asyncio.create_task(websocket.send_text(json.dumps(response_data)))
+                            packed_response = msgpack.packb(response_data)
+                            asyncio.create_task(websocket.send_bytes(packed_response))
                 except Exception as e:
                     print(f"Error processing frame: {e}")
 
