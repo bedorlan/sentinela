@@ -37,6 +37,7 @@ def extract_score_and_reason(response: str) -> tuple[int, str]:
             print(f"digits={digits}")
             return int(digits[0]), ""
         
+        print("weird ai response={response}")
         return 0, ""
         
     except Exception as e:

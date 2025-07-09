@@ -7,20 +7,24 @@ import asyncio
 import msgpack
 import os
 
-from src.gemma_local_inference import GemmaLocalInference
-from src.google_ai_studio_inference import GoogleAIStudioInference
 from src.inference_engine import InferenceEngine
 
 app = FastAPI()
 security = HTTPBasic()
+inference_engine: InferenceEngine = None
 
-if os.getenv("GOOGLE_API_KEY"):
-    inference_engine: InferenceEngine = GoogleAIStudioInference()
+if os.getenv("OPENROUTER_API_KEY"):
+    from src.openrouter_inference import OpenRouterInference
+    inference_engine = OpenRouterInference()
+elif os.getenv("GOOGLE_API_KEY"):
+    from src.google_ai_studio_inference import GoogleAIStudioInference
+    inference_engine = GoogleAIStudioInference()
 elif os.getenv("HF_TOKEN"):
-    inference_engine: InferenceEngine = GemmaLocalInference()
+    from src.gemma_local_inference import GemmaLocalInference
+    inference_engine = GemmaLocalInference()
 else:
-    print("ERROR: Neither GOOGLE_API_KEY nor HF_TOKEN environment variable is set")
-    print("Please set one of these environment variables to use the appropriate inference engine")
+    print("ERROR: No API key environment variable is set")
+    print("Please set OPENROUTER_API_KEY, GOOGLE_API_KEY, or HF_TOKEN to use the appropriate inference engine")
     exit(1)
 
 app.mount("/static", StaticFiles(directory="static"), name="static")

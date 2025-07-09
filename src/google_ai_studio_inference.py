@@ -11,8 +11,7 @@ class GoogleAIStudioInference(InferenceEngine):
         self.google_api_key = os.getenv("GOOGLE_API_KEY")
         self.analysis_in_progress = False
         self.model = None
-        # self.model_name = 'models/gemma-3n-e4b-it'
-        self.model_name = 'models/gemma-3-27b-it' # available parameters: 1,4,12,27
+        self.model_name = 'models/gemma-3n-e4b-it'
         self._initialize_model()
     
     def _initialize_model(self):
@@ -41,8 +40,6 @@ class GoogleAIStudioInference(InferenceEngine):
         
         try:
             ai_response = await self._analyze_frame_with_ai([frame_data], prompt)
-            print(f"\nAI Response: {ai_response}")
-
             score, reason = util.extract_score_and_reason(ai_response)            
             return True, (score, reason)
         finally:

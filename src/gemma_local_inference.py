@@ -16,7 +16,6 @@ class GemmaLocalInference(InferenceEngine):
         self.analysis_in_progress = False
         self.pipe = None
         self.model_name = "google/gemma-3n-e4b-it"
-        # self.model_name = "unsloth/gemma-3n-e4b-it-unsloth-bnb-4bit"
         self._initialize_model()
     
     def _initialize_model(self):
@@ -57,8 +56,6 @@ class GemmaLocalInference(InferenceEngine):
         
         try:
             ai_response = await self._analyze_frame_with_model(frame_data, prompt)
-            print(f"\nModel Response: {ai_response}")
-            
             score, reason = util.extract_score_and_reason(ai_response)
             return True, (score, reason)
         finally:
