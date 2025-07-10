@@ -14,9 +14,8 @@ const DetectionState = {
 
 const DETECTION_THRESHOLD = 90;
 
-const MainPage = () => {
+function MainPage() {
   const [prompt, setPrompt] = useState('');
-  const [isWatching, setIsWatching] = useState(false);
   const [detectionState, setDetectionState] = useState(DetectionState.IDLE);
   const [confidence, setConfidence] = useState(0);
   const [reason, setReason] = useState('');
@@ -30,9 +29,6 @@ const MainPage = () => {
     webhook: false 
   });
 
-  const cameraRef = React.useRef(null);
-  const canvasRef = React.useRef(null);
-  const captureIntervalRef = React.useRef(null);
   const detectionSoundRef = React.useRef(null);
 
   const placeholders = [
@@ -56,6 +52,7 @@ const MainPage = () => {
     detectionSoundRef.current.preload = 'auto';
   }, []);
 
+  const isWatching = detectionState == DetectionState.WATCHING || detectionState == DetectionState.DETECTED;
   const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const wsUrl = isWatching ? `${wsProtocol}//${window.location.host}/ws/frames` : null;
 
@@ -71,71 +68,23 @@ const MainPage = () => {
     }
   }, [lastMessage]);
 
-  useEffect(() => {
-    if (isWatching && readyState === WebSocket.OPEN) {
-      console.log('WebSocket connected');
-      captureIntervalRef.current = setInterval(captureFrame, 1000 / fps);
-    } else if (captureIntervalRef.current) {
-      clearInterval(captureIntervalRef.current);
-    }
+  const isReadyWatching = isWatching && readyState === WebSocket.OPEN;
 
-    return () => {
-      if (captureIntervalRef.current) {
-        clearInterval(captureIntervalRef.current);
-      }
-    };
-  }, [isWatching, readyState, fps]);
-
-  useEffect(() => {
-    const startWebcam = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        if (cameraRef.current) {
-          cameraRef.current.srcObject = stream;
-        }
-      } catch (err) {
-        console.error('Error accessing webcam:', err);
-      }
-    };
-    
-    startWebcam();
-    
-    return () => {
-      if (cameraRef.current && cameraRef.current.srcObject) {
-        const tracks = cameraRef.current.srcObject.getTracks();
-        tracks.forEach(track => track.stop());
-      }
-    };
-  }, []);
-
-  const captureFrame = useCallback(() => {
-    if (cameraRef.current && canvasRef.current && readyState === WebSocket.OPEN) {
-      const video = cameraRef.current;
-      const canvas = canvasRef.current;
-      const context = canvas.getContext('2d');
+  const handleFrame = useCallback(async (blob) => {
+    if (blob && readyState === WebSocket.OPEN) {
+      const arrayBuffer = await blob.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
       
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      context.drawImage(video, 0, 0);
+      const packed = MessagePack.encode({
+        prompt: prompt,
+        frame: uint8Array
+      });
       
-      canvas.toBlob(async (blob) => {
-        if (blob && readyState === WebSocket.OPEN) {
-          const arrayBuffer = await blob.arrayBuffer();
-          const uint8Array = new Uint8Array(arrayBuffer);
-          
-          const packed = MessagePack.encode({
-            prompt: prompt,
-            frame: uint8Array
-          });
-          
-          sendMessage(packed);
-        }
-      }, 'image/jpeg', imageQuality);
+      sendMessage(packed);
     }
-  }, [readyState, prompt, imageQuality, sendMessage]);
+  }, [readyState, prompt, sendMessage]);
 
   const startWatching = () => {
-    setIsWatching(true);
     setDetectionState(DetectionState.WATCHING);
     setReason(''); 
     console.log(`Starting to watch for: ${prompt}`);
@@ -173,7 +122,6 @@ const MainPage = () => {
   };
 
   const stopWatching = () => {
-    setIsWatching(false);
     setDetectionState(DetectionState.IDLE);
     setConfidence(0);
     console.log('Stopped watching');
@@ -215,16 +163,12 @@ const MainPage = () => {
           {/* Video Feed */}
           <div className="bg-black/30 backdrop-blur rounded-3xl p-8 mb-3 border border-white/20">
             <div className="aspect-video bg-black/50 rounded-2xl flex items-center justify-center relative overflow-hidden">
-              <video
-                ref={cameraRef}
-                autoPlay
-                playsInline
-                muted
+              <VideoCamera
                 className="w-full h-full object-cover"
-              />
-              <canvas
-                ref={canvasRef}
-                style={{ display: 'none' }}
+                fps={fps}
+                imageQuality={imageQuality}
+                isRecording={isReadyWatching}
+                onFrame={handleFrame}
               />
               
               {isWatching && (
@@ -445,5 +389,85 @@ const MainPage = () => {
     </div>
   );
 };
+
+function VideoCamera({
+  className,
+  fps,
+  imageQuality,
+  isRecording,
+  onFrame,
+}) {
+  const cameraRef = React.useRef(null);
+  const canvasRef = React.useRef(null);
+  const captureIntervalRef = React.useRef(null);
+
+  useEffect(() => {
+    const startWebcam = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        if (cameraRef.current) {
+          cameraRef.current.srcObject = stream;
+        }
+      } catch (err) {
+        console.error('Error accessing webcam:', err);
+      }
+    };
+    
+    startWebcam();
+    
+    return () => {
+      if (cameraRef.current && cameraRef.current.srcObject) {
+        const tracks = cameraRef.current.srcObject.getTracks();
+        tracks.forEach(track => track.stop());
+      }
+    };
+  }, []);
+
+  const captureFrame = useCallback(() => {
+    if (cameraRef.current && canvasRef.current) {
+      const video = cameraRef.current;
+      const canvas = canvasRef.current;
+      const context = canvas.getContext('2d');
+      
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      context.drawImage(video, 0, 0);
+      
+      canvas.toBlob(async (blob) => {
+        if (blob && onFrame) {
+          onFrame(blob);
+        }
+      }, 'image/jpeg', imageQuality);
+    }
+  }, [imageQuality, onFrame]);
+
+  useEffect(() => {
+    if (isRecording) {
+      captureIntervalRef.current = setInterval(captureFrame, 1000 / fps);
+    } else if (captureIntervalRef.current) {
+      clearInterval(captureIntervalRef.current);
+    }
+
+    return () => {
+      if (captureIntervalRef.current) {
+        clearInterval(captureIntervalRef.current);
+      }
+    };
+  }, [isRecording, fps, captureFrame]);
+
+  return <>
+    <video
+      ref={cameraRef}
+      autoPlay
+      playsInline
+      muted
+      className={className}
+    />
+    <canvas
+      ref={canvasRef}
+      style={{ display: 'none' }}
+    />
+  </>
+}
 
 createRoot(document.getElementById("root")).render(<MainPage />);
