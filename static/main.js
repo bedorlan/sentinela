@@ -14,12 +14,20 @@ const DetectionState = {
 
 const DETECTION_THRESHOLD = 90;
 
+const placeholders = [
+  "Tell me when my cat enters the room... 🐱",
+  "Alert me when someone smiles... 😊",
+  "Notify me when the sun sets... 🌅",
+  "Watch for when my pizza arrives... 🍕",
+  "Let me know when the baby wakes up... 👶",
+  "Warn me if someone looks sad... 😢",
+];
+
 function MainPage() {
   const [prompt, setPrompt] = useState('');
   const [detectionState, setDetectionState] = useState(DetectionState.IDLE);
   const [confidence, setConfidence] = useState(0);
   const [reason, setReason] = useState('');
-  const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [fps, setFps] = useState(1);
   const [imageQuality, setImageQuality] = useState(0.9);
   const [enabledNotifications, setEnabledNotifications] = useState({ 
@@ -29,17 +37,7 @@ function MainPage() {
     webhook: false 
   });
 
-  const detectionSoundRef = React.useRef(null);
-
-  const placeholders = [
-    "Tell me when my cat enters the room... 🐱",
-    "Alert me when someone smiles... 😊",
-    "Notify me when the sun sets... 🌅",
-    "Watch for when my pizza arrives... 🍕",
-    "Let me know when the baby wakes up... 👶",
-    "Warn me if someone looks sad... 😢"
-  ];
-
+  const [placeholderIndex, setPlaceholderIndex] = useState(0);
   useEffect(() => {
     const interval = setInterval(() => {
       setPlaceholderIndex((prev) => (prev + 1) % placeholders.length);
@@ -47,6 +45,7 @@ function MainPage() {
     return () => clearInterval(interval);
   }, []);
 
+  const detectionSoundRef = React.useRef(null);
   useEffect(() => {
     detectionSoundRef.current = new Audio('/static/sound/detected.mp3');
     detectionSoundRef.current.preload = 'auto';
@@ -62,16 +61,18 @@ function MainPage() {
     reconnectAttempts: 10,
   });
 
-  useEffect(() => {
-    if (lastMessage) {
-      handleWebSocketMessage(lastMessage);
-    }
-  }, [lastMessage]);
+  const startWatching = () => {
+    setDetectionState(DetectionState.WATCHING);
+    setReason(''); 
+    console.log(`Starting to watch for: ${prompt}`);
+    console.log(`FPS: ${fps}`);
+    console.log(`Image Quality: ${imageQuality}`);
+  };
 
   const isReadyWatching = isWatching && readyState === WebSocket.OPEN;
 
   const handleFrame = useCallback(async (blob) => {
-    if (blob && readyState === WebSocket.OPEN) {
+    if (blob && isReadyWatching) {
       const arrayBuffer = await blob.arrayBuffer();
       const uint8Array = new Uint8Array(arrayBuffer);
       
@@ -82,15 +83,13 @@ function MainPage() {
       
       sendMessage(packed);
     }
-  }, [readyState, prompt, sendMessage]);
+  }, [isReadyWatching, prompt, sendMessage]);
 
-  const startWatching = () => {
-    setDetectionState(DetectionState.WATCHING);
-    setReason(''); 
-    console.log(`Starting to watch for: ${prompt}`);
-    console.log(`FPS: ${fps}`);
-    console.log(`Image Quality: ${imageQuality}`);
-  };
+  useEffect(() => {
+    if (lastMessage) {
+      handleWebSocketMessage(lastMessage);
+    }
+  }, [lastMessage]);
 
   const handleWebSocketMessage = async (message) => {
     if (detectionState != DetectionState.WATCHING) return;
