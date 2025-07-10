@@ -38,7 +38,7 @@ function MainPage() {
   });
 
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
-  useEffect(() => {
+  useEffect(function rotatingPlaceholder() {
     const interval = setInterval(() => {
       setPlaceholderIndex((prev) => (prev + 1) % placeholders.length);
     }, 3000);
