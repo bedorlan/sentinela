@@ -1,4 +1,6 @@
-const { useState, useEffect } = React;
+import React, { useState, useEffect } from 'react';
+import { createRoot } from "react-dom";
+import * as MessagePack from '@msgpack/msgpack';
 
 // Detection state enum
 const DetectionState = {
@@ -447,3 +449,5 @@ const MainPage = () => {
     </div>
   );
 };
+
+createRoot(document.getElementById("root")).render(<MainPage />);

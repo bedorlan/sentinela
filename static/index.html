@@ -4,18 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sentinela</title>
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <script crossorigin src="https://unpkg.com/@babel/standalone@7/babel.min.js"></script>
-    <script crossorigin src="https://unpkg.com/@msgpack/msgpack@2/dist.es5+umd/msgpack.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7/babel.min.js"></script>
+    <script type="importmap">
+    {
+        "imports": {
+            "react":               "https://cdn.jsdelivr.net/npm/react@18.3.1/+esm",
+            "react-dom":           "https://cdn.jsdelivr.net/npm/react-dom@18.3.1/client/+esm",
+            "@msgpack/msgpack":    "https://cdn.jsdelivr.net/npm/@msgpack/msgpack@2/+esm"
+        }
+    }
+    </script>
     <script src="https://cdn.tailwindcss.com/3.4.16"></script>
 </head>
 <body>
     <div id="root"></div>
-    <script type="text/babel" src="static/main.js"></script>
-    <script type="text/babel">
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<MainPage />);
-    </script>
+    <script src="static/main.js" type="text/babel" data-type="module" data-presets="react"></script>
 </body>
 </html>
