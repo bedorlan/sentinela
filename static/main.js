@@ -1,6 +1,9 @@
-import React, { useState, useEffect } from 'react';
 import { createRoot } from "react-dom";
 import * as MessagePack from '@msgpack/msgpack';
+import React, { useState, useEffect, useCallback } from 'react';
+import ruw from 'react-use-websocket';
+
+const { default: useWebSocket } = ruw;
 
 // Detection state enum
 const DetectionState = {
@@ -26,9 +29,9 @@ const MainPage = () => {
     sms: false,
     webhook: false 
   });
+
   const cameraRef = React.useRef(null);
   const canvasRef = React.useRef(null);
-  const wsRef = React.useRef(null);
   const captureIntervalRef = React.useRef(null);
   const detectionSoundRef = React.useRef(null);
 
@@ -53,6 +56,36 @@ const MainPage = () => {
     detectionSoundRef.current.preload = 'auto';
   }, []);
 
+  const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsUrl = isWatching ? `${wsProtocol}//${window.location.host}/ws/frames` : null;
+
+  const { sendMessage, lastMessage, readyState } = useWebSocket(wsUrl, {
+    shouldReconnect: () => isWatching,
+    reconnectInterval: 3000,
+    reconnectAttempts: 10,
+  });
+
+  useEffect(() => {
+    if (lastMessage) {
+      handleWebSocketMessage(lastMessage);
+    }
+  }, [lastMessage]);
+
+  useEffect(() => {
+    if (isWatching && readyState === WebSocket.OPEN) {
+      console.log('WebSocket connected');
+      captureIntervalRef.current = setInterval(captureFrame, 1000 / fps);
+    } else if (captureIntervalRef.current) {
+      clearInterval(captureIntervalRef.current);
+    }
+
+    return () => {
+      if (captureIntervalRef.current) {
+        clearInterval(captureIntervalRef.current);
+      }
+    };
+  }, [isWatching, readyState, fps]);
+
   useEffect(() => {
     const startWebcam = async () => {
       try {
@@ -75,8 +108,8 @@ const MainPage = () => {
     };
   }, []);
 
-  const captureFrame = () => {
-    if (cameraRef.current && canvasRef.current && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+  const captureFrame = useCallback(() => {
+    if (cameraRef.current && canvasRef.current && readyState === WebSocket.OPEN) {
       const video = cameraRef.current;
       const canvas = canvasRef.current;
       const context = canvas.getContext('2d');
@@ -86,23 +119,20 @@ const MainPage = () => {
       context.drawImage(video, 0, 0);
       
       canvas.toBlob(async (blob) => {
-        if (blob && wsRef.current.readyState === WebSocket.OPEN) {
-          // Convert blob to ArrayBuffer for MessagePack
+        if (blob && readyState === WebSocket.OPEN) {
           const arrayBuffer = await blob.arrayBuffer();
           const uint8Array = new Uint8Array(arrayBuffer);
           
-          // Pack the data using MessagePack
           const packed = MessagePack.encode({
             prompt: prompt,
             frame: uint8Array
           });
           
-          // Send as binary
-          wsRef.current.send(packed);
+          sendMessage(packed);
         }
       }, 'image/jpeg', imageQuality);
     }
-  };
+  }, [readyState, prompt, imageQuality, sendMessage]);
 
   const startWatching = () => {
     setIsWatching(true);
@@ -111,59 +141,35 @@ const MainPage = () => {
     console.log(`Starting to watch for: ${prompt}`);
     console.log(`FPS: ${fps}`);
     console.log(`Image Quality: ${imageQuality}`);
+  };
+
+  const handleWebSocketMessage = async (message) => {
+    let newConfidence = 0;
+    let newReason = '';
     
-    // Connect to WebSocket using current domain
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/ws/frames`;
-    wsRef.current = new WebSocket(wsUrl);
-    
-    wsRef.current.onopen = () => {
-      console.log('WebSocket connected');
-      // Start capturing frames
-      captureIntervalRef.current = setInterval(captureFrame, 1000 / fps);
-    };
-    
-    wsRef.current.onmessage = async (event) => {
-      let newConfidence = 0;
-      let newReason = '';
+    try {
+      const arrayBuffer = await message.data.arrayBuffer();
+      const data = MessagePack.decode(new Uint8Array(arrayBuffer));
       
-      try {
-    
-        const arrayBuffer = await event.data.arrayBuffer();
-        const data = MessagePack.decode(new Uint8Array(arrayBuffer));
-        
-        newConfidence = parseFloat(data.confidence || 0);
-        newReason = data.reason || reason; // Keep previous if no new reason
-        
-      } catch (e) {
-        console.error('Error decoding MessagePack:', e);
-        // On error, keep the previous reason
-        newReason = reason;
-      }
+      newConfidence = parseFloat(data.confidence || 0);
+      newReason = data.reason || reason;
       
-      setConfidence(newConfidence);
-      setReason(newReason);
-      if (newConfidence >= DETECTION_THRESHOLD) {
-        setDetectionState(DetectionState.DETECTED);
-        if (enabledNotifications.sound && detectionSoundRef.current) {
-          detectionSoundRef.current.play().catch(e => console.error('Failed to play sound:', e));
-        }
-        setTimeout(() => {
-          setDetectionState(DetectionState.WATCHING);
-        }, 3000);
-      }
-    };
+    } catch (e) {
+      console.error('Error decoding MessagePack:', e);
+      newReason = reason;
+    }
     
-    wsRef.current.onerror = (error) => {
-      console.error('WebSocket error:', error);
-    };
-    
-    wsRef.current.onclose = () => {
-      console.log('WebSocket disconnected');
-      if (captureIntervalRef.current) {
-        clearInterval(captureIntervalRef.current);
+    setConfidence(newConfidence);
+    setReason(newReason);
+    if (newConfidence >= DETECTION_THRESHOLD) {
+      setDetectionState(DetectionState.DETECTED);
+      if (enabledNotifications.sound && detectionSoundRef.current) {
+        detectionSoundRef.current.play().catch(e => console.error('Failed to play sound:', e));
       }
-    };
+      setTimeout(() => {
+        setDetectionState(DetectionState.WATCHING);
+      }, 3000);
+    }
   };
 
   const stopWatching = () => {
@@ -171,16 +177,6 @@ const MainPage = () => {
     setDetectionState(DetectionState.IDLE);
     setConfidence(0);
     console.log('Stopped watching');
-    
-    // Stop capturing frames
-    if (captureIntervalRef.current) {
-      clearInterval(captureIntervalRef.current);
-    }
-    
-    // Close WebSocket connection
-    if (wsRef.current) {
-      wsRef.current.close();
-    }
   };
 
   return (
