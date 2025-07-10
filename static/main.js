@@ -93,32 +93,36 @@ function MainPage() {
   };
 
   const handleWebSocketMessage = async (message) => {
+    if (detectionState != DetectionState.WATCHING) return;
+
     let newConfidence = 0;
     let newReason = '';
-    
     try {
       const arrayBuffer = await message.data.arrayBuffer();
       const data = MessagePack.decode(new Uint8Array(arrayBuffer));
-      
-      newConfidence = parseFloat(data.confidence || 0);
-      newReason = data.reason || reason;
+      newConfidence = parseFloat(data.confidence);
+      newReason = data.reason;
       
     } catch (e) {
       console.error('Error decoding MessagePack:', e);
-      newReason = reason;
+      return;
     }
     
     setConfidence(newConfidence);
     setReason(newReason);
-    if (newConfidence >= DETECTION_THRESHOLD) {
-      setDetectionState(DetectionState.DETECTED);
-      if (enabledNotifications.sound && detectionSoundRef.current) {
-        detectionSoundRef.current.play().catch(e => console.error('Failed to play sound:', e));
-      }
-      setTimeout(() => {
-        setDetectionState(DetectionState.WATCHING);
-      }, 3000);
+
+    if (newConfidence < DETECTION_THRESHOLD) return;
+
+    setDetectionState(DetectionState.DETECTED);
+    if (enabledNotifications.sound && detectionSoundRef.current) {
+      detectionSoundRef.current.play().catch(e => console.error('Failed to play sound:', e));
     }
+
+    setTimeout(() => {
+      setDetectionState((detectionState) => {
+        return detectionState == DetectionState.DETECTED ? DetectionState.WATCHING : detectionState;
+      });
+    }, 5000);
   };
 
   const stopWatching = () => {
