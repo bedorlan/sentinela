@@ -30,6 +30,9 @@ function MainPage() {
   });
   const [currentLanguage, setCurrentLanguage] = useState("en");
   const [isLoadingTranslation, setIsLoadingTranslation] = useState(false);
+  const [demos, setDemos] = useState([]);
+  const [demoMode, setDemoMode] = useState(false);
+  const [currentDemo, setCurrentDemo] = useState(null);
 
   const loadTexts = async (languageCode = "en", showLoading = false) => {
     try {
@@ -72,6 +75,13 @@ function MainPage() {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(function loadDemos() {
+    fetch("/static/demos/demos.json")
+      .then((response) => response.json())
+      .then((data) => setDemos(data))
+      .catch((error) => console.error("Error loading demos:", error));
+  }, []);
+
   const detectionSoundRef = React.useRef(null);
   useEffect(() => {
     detectionSoundRef.current = new Audio("/static/sound/detected.mp3");
@@ -107,7 +117,7 @@ function MainPage() {
         sendMessage(packed);
       }
     },
-    [isReadyWatching, prompt, sendMessage]
+    [isReadyWatching, prompt, sendMessage],
   );
 
   useEffect(() => {
@@ -158,9 +168,21 @@ function MainPage() {
     }, 5000);
   };
 
+  const handleDemoSelect = (demo) => {
+    setCurrentDemo(demo);
+    setDemoMode(true);
+    setPrompt(demo.prompt);
+    setDetectionState(DetectionState.WATCHING);
+    setReason("");
+    console.log(`Starting demo: ${demo.demo_name}`);
+  };
+
   return (
     <MainUI
       confidence={confidence}
+      currentDemo={currentDemo}
+      demoMode={demoMode}
+      demos={demos}
       detectionState={detectionState}
       enabledNotifications={enabledNotifications}
       fps={fps}
@@ -173,10 +195,20 @@ function MainPage() {
       texts={texts}
       isLoadingTranslation={isLoadingTranslation}
       currentLanguage={currentLanguage}
-      //
+      onDemoSelect={handleDemoSelect}
       onFpsChange={(newFps) => setFps(newFps)}
       onHandleFrame={handleFrame}
       onImageQualityChange={(newQuality) => setImageQuality(newQuality)}
+      onModeToggle={() => {
+        setDemoMode(!demoMode);
+        setCurrentDemo(null);
+        setPrompt("");
+        setReason("");
+        if (isWatching) {
+          setDetectionState(DetectionState.IDLE);
+          setConfidence(0);
+        }
+      }}
       onNotificationToggle={(notificationKey) =>
         setEnabledNotifications((prev) => ({
           ...prev,
@@ -203,6 +235,9 @@ function MainPage() {
 
 function MainUI({
   confidence,
+  currentDemo,
+  demoMode,
+  demos,
   detectionState,
   enabledNotifications,
   fps,
@@ -215,9 +250,11 @@ function MainUI({
   texts,
   isLoadingTranslation,
   currentLanguage,
+  onDemoSelect,
   onFpsChange,
   onHandleFrame,
   onImageQualityChange,
+  onModeToggle,
   onNotificationToggle,
   onPromptChange,
   onStartWatching,
@@ -276,9 +313,21 @@ function MainUI({
         <div className="max-w-4xl mx-auto">
           {/* Video Feed */}
           <div className="bg-black/30 backdrop-blur rounded-3xl p-8 mb-3 border border-white/20">
+            {demoMode && (
+              <div className="mb-4 flex justify-center">
+                <button
+                  onClick={onModeToggle}
+                  className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 transition-all border border-white/30"
+                >
+                  📹 Switch to Webcam
+                </button>
+              </div>
+            )}
             <div className="aspect-video bg-black/50 rounded-2xl flex items-center justify-center relative overflow-hidden">
               <VideoCamera
                 className="w-full h-full object-cover"
+                currentDemo={currentDemo}
+                demoMode={demoMode}
                 fps={fps}
                 imageQuality={imageQuality}
                 isRecording={isRecording}
@@ -464,24 +513,46 @@ function MainUI({
 
           {/* Fun Examples */}
           <div className="mt-8 text-center">
-            <p className="text-lg mb-4 text-blue-200">{texts.try_examples}</p>
-            <div className="flex flex-wrap justify-center gap-3">
-              {[
-                texts.example_dog,
-                texts.example_dance,
-                texts.example_coffee,
-                texts.example_bird,
-              ].map((example) => (
-                <button
-                  key={example}
-                  onClick={() => onPromptChange(`${texts.alert_me} ${example}`)}
-                  className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 transition-all hover:scale-105"
-                  disabled={isWatching}
-                >
-                  {example}
-                </button>
-              ))}
-            </div>
+            {demoMode ? (
+              <>
+                <p className="text-lg mb-4 text-blue-200">
+                  Try these magical demo examples:
+                </p>
+                <div className="flex flex-wrap justify-center gap-3">
+                  {demos.map((demo) => (
+                    <button
+                      key={demo.demo_name}
+                      onClick={() => onDemoSelect(demo)}
+                      className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 transition-all hover:scale-105"
+                      disabled={isWatching}
+                    >
+                      {demo.demo_name}
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-lg mb-4 text-blue-200">{texts.try_examples}</p>
+                <div className="flex flex-wrap justify-center gap-3">
+                  {[
+                    texts.example_dog,
+                    texts.example_dance,
+                    texts.example_coffee,
+                    texts.example_bird,
+                  ].map((example) => (
+                    <button
+                      key={example}
+                      onClick={() => onPromptChange(`${texts.alert_me} ${example}`)}
+                      className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 transition-all hover:scale-105"
+                      disabled={isWatching}
+                    >
+                      {example}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -654,34 +725,62 @@ function TranslationLoadingModal({ isLoading, texts }) {
   );
 }
 
-function VideoCamera({ className, fps, imageQuality, isRecording, onFrame }) {
+function VideoCamera({
+  className,
+  currentDemo,
+  demoMode,
+  fps,
+  imageQuality,
+  isRecording,
+  onFrame,
+}) {
   const cameraRef = React.useRef(null);
   const canvasRef = React.useRef(null);
   const captureIntervalRef = React.useRef(null);
 
   useEffect(() => {
-    const startWebcam = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-        });
-        if (cameraRef.current) {
-          cameraRef.current.srcObject = stream;
-        }
-      } catch (err) {
-        console.error("Error accessing webcam:", err);
-      }
-    };
+    if (demoMode && currentDemo) {
+      if (cameraRef.current) {
+        cameraRef.current.src = `/static/demos/${currentDemo.file}`;
+        cameraRef.current.loop = false;
+        cameraRef.current.muted = true;
+        cameraRef.current
+          .play()
+          .catch((err) => console.error("Error playing demo video:", err));
 
-    startWebcam();
+        cameraRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }
+    } else {
+      const startWebcam = async () => {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+          });
+          if (cameraRef.current) {
+            cameraRef.current.srcObject = stream;
+          }
+        } catch (err) {
+          console.error("Error accessing webcam:", err);
+        }
+      };
+
+      startWebcam();
+    }
 
     return () => {
-      if (cameraRef.current && cameraRef.current.srcObject) {
-        const tracks = cameraRef.current.srcObject.getTracks();
-        tracks.forEach((track) => track.stop());
+      if (cameraRef.current) {
+        if (cameraRef.current.srcObject) {
+          const tracks = cameraRef.current.srcObject.getTracks();
+          tracks.forEach((track) => track.stop());
+        }
+        cameraRef.current.srcObject = null;
+        cameraRef.current.src = "";
       }
     };
-  }, []);
+  }, [demoMode, currentDemo]);
 
   const captureFrame = useCallback(() => {
     if (cameraRef.current && canvasRef.current) {
@@ -689,8 +788,15 @@ function VideoCamera({ className, fps, imageQuality, isRecording, onFrame }) {
       const canvas = canvasRef.current;
       const context = canvas.getContext("2d");
 
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+      const width = demoMode
+        ? video.videoWidth || video.clientWidth
+        : video.videoWidth;
+      const height = demoMode
+        ? video.videoHeight || video.clientHeight
+        : video.videoHeight;
+
+      canvas.width = width;
+      canvas.height = height;
       context.drawImage(video, 0, 0);
 
       canvas.toBlob(
@@ -700,10 +806,10 @@ function VideoCamera({ className, fps, imageQuality, isRecording, onFrame }) {
           }
         },
         "image/jpeg",
-        imageQuality
+        imageQuality,
       );
     }
-  }, [imageQuality, onFrame]);
+  }, [demoMode, imageQuality, onFrame]);
 
   useEffect(() => {
     if (isRecording) {
@@ -721,7 +827,14 @@ function VideoCamera({ className, fps, imageQuality, isRecording, onFrame }) {
 
   return (
     <>
-      <video ref={cameraRef} autoPlay playsInline muted className={className} />
+      <video
+        ref={cameraRef}
+        autoPlay
+        playsInline
+        muted
+        className={className}
+        style={{ objectFit: "contain" }}
+      />
       <canvas ref={canvasRef} style={{ display: "none" }} />
     </>
   );
