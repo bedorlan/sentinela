@@ -50,6 +50,7 @@ async def read_root(username: str = Depends(authenticate), session_id: str = Coo
         sessions[session_id] = {
             "username": username,
             "created_at": datetime.now(),
+            "inference_in_progress": False
         }
         print(f"New session created: {session_id} for user: {username}")
     
@@ -133,6 +134,13 @@ async def websocket_frames(websocket: WebSocket):
             if not prompt or not frame_data:
                 continue
 
+            if session_info["inference_in_progress"]:
+                dropped_frames += 1
+                print(".", end="")
+                continue
+            
+            session_info["inference_in_progress"] = True
+
             def handle_frame_result(task):
                 try:
                     processed, ai_response = task.result()
@@ -154,6 +162,8 @@ async def websocket_frames(websocket: WebSocket):
                     asyncio.create_task(websocket.send_bytes(packed_response))
                 except Exception as e:
                     print(f"Error processing frame: {e}")
+                finally:
+                    session_info["inference_in_progress"] = False
 
             task = asyncio.create_task(inference_engine.process_frame(frame_data, prompt))
             task.add_done_callback(handle_frame_result)
@@ -161,6 +171,7 @@ async def websocket_frames(websocket: WebSocket):
     except Exception as e:
         print(f"WebSocket error: {e}")
     finally:
+        session_info["inference_in_progress"] = False
         print(f"WebSocket connection closed at {datetime.now()}")
         print(f"Total frames received: {frame_count}")
         print(f"Total frames processed: {frame_count - dropped_frames}")

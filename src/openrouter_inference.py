@@ -11,7 +11,6 @@ from .inference_engine import InferenceEngine
 class OpenRouterInference(InferenceEngine):
     def __init__(self):
         self.api_key = os.getenv("OPENROUTER_API_KEY")
-        self.analysis_in_progress = False
         self.client = None
         self.model_name = 'google/gemma-3n-e4b-it' # this one supports images
         # self.model_name = 'google/gemma-3n-e4b-it:free'
@@ -36,22 +35,15 @@ class OpenRouterInference(InferenceEngine):
         
         Returns:
             Tuple[bool, Optional[str]]: (should_process, ai_response)
-            - If should_process is False, the frame was dropped (analysis in progress)
+            - If should_process is False, the frame was dropped
             - If should_process is True, ai_response contains the analysis result
         """
-        if self.analysis_in_progress:
+        ai_response = await self._analyze_frame_with_ai([frame_data], prompt)
+        if not ai_response:
             return False, None
-        self.analysis_in_progress = True
-        
-        try:
-            ai_response = await self._analyze_frame_with_ai([frame_data], prompt)
-            if not ai_response:
-                return False, None
 
-            score, reason = util.extract_score_and_reason(ai_response)            
-            return True, (score, reason)
-        finally:
-            self.analysis_in_progress = False
+        score, reason = util.extract_score_and_reason(ai_response)            
+        return True, (score, reason)
 
     async def _analyze_frame_with_ai(self, frames: list, prompt: str) -> str:
         """Internal function to analyze frames using OpenRouter"""

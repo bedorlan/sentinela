@@ -9,7 +9,6 @@ from .inference_engine import InferenceEngine
 class GoogleAIStudioInference(InferenceEngine):
     def __init__(self):
         self.google_api_key = os.getenv("GOOGLE_API_KEY")
-        self.analysis_in_progress = False
         self.model = None
         self.model_name = 'models/gemma-3n-e4b-it'
         self._initialize_model()
@@ -30,23 +29,15 @@ class GoogleAIStudioInference(InferenceEngine):
         
         Returns:
             Tuple[bool, Optional[str]]: (should_process, ai_response)
-            - If should_process is False, the frame was dropped (analysis in progress)
+            - If should_process is False, the frame was dropped
             - If should_process is True, ai_response contains the analysis result
         """
-        # Check if we should drop this frame
-        if self.analysis_in_progress:
-            return False, None  # Frame dropped
-        self.analysis_in_progress = True
-        
-        try:
-            ai_response = await self._analyze_frame_with_ai([frame_data], prompt)
-            if not ai_response:
-                return False, None
-                
-            score, reason = util.extract_score_and_reason(ai_response)            
-            return True, (score, reason)
-        finally:
-            self.analysis_in_progress = False
+        ai_response = await self._analyze_frame_with_ai([frame_data], prompt)
+        if not ai_response:
+            return False, None
+            
+        score, reason = util.extract_score_and_reason(ai_response)            
+        return True, (score, reason)
 
     async def _analyze_frame_with_ai(self, frames: list, prompt: str) -> str:
         """Internal function to analyze frames using Google AI Studio"""
