@@ -1,7 +1,8 @@
 from openai import AsyncOpenAI
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Dict
 import base64
 import os
+import json
 
 from . import util
 from .inference_engine import InferenceEngine
@@ -90,3 +91,64 @@ class OpenRouterInference(InferenceEngine):
             return response.choices[0].message.content
         except Exception as e:
             return f"AI analysis error: {str(e)}"
+    
+    async def translate(self, texts: Dict[str, str], locale: str) -> Dict[str, str]:
+        """
+        Translate a dictionary of texts to the specified locale.
+        
+        Args:
+            texts: Dictionary with keys and text values to translate
+            locale: Target language locale (e.g., 'es', 'fr', 'pt', 'de')
+            
+        Returns:
+            Dictionary with same keys but translated values
+        """
+        try:
+            # Create the translation prompt
+            prompt = f"""You are a professional translator. Translate the following texts to {locale} language.
+            
+            IMPORTANT RULES:
+            1. Only translate the values, not the keys
+            2. Preserve all emojis exactly as they are
+            3. Maintain the same tone and style as the original
+            4. Return ONLY a valid JSON object with the same structure
+            5. Do not add any explanations or additional text
+            
+            Input JSON:
+            {json.dumps(texts, ensure_ascii=False, indent=2)}
+            
+            Return the translated JSON:"""
+
+            messages = [{
+                "role": "user",
+                "content": prompt
+            }]
+            print(prompt)
+            
+            response_text = await self._run_ai_inference(messages)
+            
+            try:
+                cleaned_response = response_text.strip()
+                if cleaned_response.startswith("```json"):
+                    cleaned_response = cleaned_response[7:]
+                if cleaned_response.startswith("```"):
+                    cleaned_response = cleaned_response[3:]
+                if cleaned_response.endswith("```"):
+                    cleaned_response = cleaned_response[:-3]
+                
+                translated_texts = json.loads(cleaned_response.strip())
+                
+                for key in texts.keys():
+                    if key not in translated_texts:
+                        translated_texts[key] = texts[key]
+                        
+                return translated_texts
+                
+            except json.JSONDecodeError as e:
+                print(f"Error parsing translation response: {e}")
+                print(f"Response was: {response_text}")
+                return texts
+                
+        except Exception as e:
+            print(f"Translation error: {str(e)}")
+            return texts
