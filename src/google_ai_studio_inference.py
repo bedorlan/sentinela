@@ -40,6 +40,9 @@ class GoogleAIStudioInference(InferenceEngine):
         
         try:
             ai_response = await self._analyze_frame_with_ai([frame_data], prompt)
+            if not ai_response:
+                return False, None
+                
             score, reason = util.extract_score_and_reason(ai_response)            
             return True, (score, reason)
         finally:
@@ -69,7 +72,8 @@ class GoogleAIStudioInference(InferenceEngine):
             return response_text
             
         except Exception as e:
-            return f"AI analysis error: {str(e)}"
+            print(f"AI analysis error: {str(e)}")
+            return ""
     
     async def _run_ai_inference(self, content):
         """Async worker function for AI inference"""
@@ -77,6 +81,7 @@ class GoogleAIStudioInference(InferenceEngine):
             response = await self.model.generate_content_async(content)
             return response.text
         except Exception as e:
-            return f"AI analysis error: {str(e)}"
+            print(f"AI inference error: {str(e)}")
+            return ""
         
     

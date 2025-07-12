@@ -56,6 +56,9 @@ class GemmaLocalInference(InferenceEngine):
         
         try:
             ai_response = await self._analyze_frame_with_model(frame_data, prompt)
+            if not ai_response:
+                return False, None
+                
             score, reason = util.extract_score_and_reason(ai_response)
             return True, (score, reason)
         finally:
@@ -68,7 +71,8 @@ class GemmaLocalInference(InferenceEngine):
             return result
 
         except Exception as e:
-            return f"Model analysis error: {str(e)}"
+            print(f"Model analysis error: {str(e)}")
+            return ""
     
     def _run_inference(self, frame_data: bytes, prompt: str) -> str:
         try:
@@ -91,5 +95,6 @@ class GemmaLocalInference(InferenceEngine):
             return answer
             
         except Exception as e:
-            return f"Inference error: {str(e)}"
+            print(f"Inference error: {str(e)}")
+            return ""
     
