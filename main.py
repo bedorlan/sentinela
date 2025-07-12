@@ -4,6 +4,7 @@ from fastapi.responses import FileResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.staticfiles import StaticFiles
 import asyncio
+import json
 import msgpack
 import os
 
@@ -50,6 +51,34 @@ async def read_icon():
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
+
+@app.get("/translations/{language}")
+async def get_translations(language: str):
+    """Get translations for the specified language"""
+    try:
+        with open("static/locales/extracted_texts.json", "r", encoding="utf-8") as f:
+            base_texts = json.load(f)
+    
+        if language.lower().startswith('en'):
+            print(f"📖 English texts loaded directly from file")
+            print(f"📄 Base texts: {base_texts}")
+            return {"translations": base_texts}
+        
+        if not hasattr(inference_engine, 'translate'):
+            raise HTTPException(status_code=501, detail="Translation not supported")
+        
+        translated_texts = await inference_engine.translate(base_texts, language)
+        
+        print(f"✅ Translation completed for language: {language}")
+        print(f"📄 Final translated texts: {translated_texts}")
+        
+        return {"translations": translated_texts}
+        
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Base texts file not found")
+    except Exception as e:
+        print(f"Translation error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Translation failed: {str(e)}")
 
 @app.websocket("/ws/frames")
 async def websocket_frames(websocket: WebSocket):
