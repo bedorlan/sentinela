@@ -28,15 +28,10 @@ function MainPage() {
     sms: false,
     webhook: false,
   });
-  const [showLanguagePrompt, setShowLanguagePrompt] = useState(false);
   const [detectedLanguage, setDetectedLanguage] = useState(null);
   const [currentLanguage, setCurrentLanguage] = useState('en');
   const [isLoadingTranslation, setIsLoadingTranslation] = useState(false);
   const [showLanguageSelector, setShowLanguageSelector] = useState(false);
-
-  useEffect(() => {
-    console.log('🔄 Texts State Updated:', texts);
-  }, [texts]);
 
   const loadTexts = async (languageCode = 'en', showLoading = false) => {
     try {
@@ -141,19 +136,6 @@ function MainPage() {
     }
   }, [lastMessage]);
 
-  const handleLanguageSwitch = async (switchToDetected) => {
-    if (switchToDetected && detectedLanguage) {
-      setShowLanguagePrompt(false);
-      await loadTexts(detectedLanguage.code, true);
-    } else {
-      setShowLanguagePrompt(false);
-    }
-  };
-
-  const handleLanguageDismiss = () => {
-    localStorage.setItem('language_prompt_dismissed', 'true');
-    setShowLanguagePrompt(false);
-  };
 
   const handleOpenLanguageSelector = () => {
     const browserLanguage = navigator.language;
@@ -224,7 +206,6 @@ function MainPage() {
       prompt={prompt}
       reason={reason}
       texts={texts}
-      showLanguagePrompt={showLanguagePrompt}
       detectedLanguage={detectedLanguage}
       isLoadingTranslation={isLoadingTranslation}
       showLanguageSelector={showLanguageSelector}
@@ -252,8 +233,6 @@ function MainPage() {
         console.log("Stopped watching");
       }}
       onPromptChange={(newPrompt) => setPrompt(newPrompt)}
-      onLanguageSwitch={handleLanguageSwitch}
-      onLanguageDismiss={handleLanguageDismiss}
       onOpenLanguageSelector={handleOpenLanguageSelector}
       onLanguageSelectorSwitch={handleLanguageSelectorSwitch}
       onCloseLanguageSelector={() => setShowLanguageSelector(false)}
@@ -273,7 +252,6 @@ function MainUI({
   prompt,
   reason,
   texts,
-  showLanguagePrompt,
   detectedLanguage,
   isLoadingTranslation,
   showLanguageSelector,
@@ -285,8 +263,6 @@ function MainUI({
   onPromptChange,
   onStartWatching,
   onStopWatching,
-  onLanguageSwitch,
-  onLanguageDismiss,
   onOpenLanguageSelector,
   onLanguageSelectorSwitch,
   onCloseLanguageSelector,
@@ -326,9 +302,9 @@ function MainUI({
                 className="group relative bg-gradient-to-r from-blue-500/20 to-purple-500/20 hover:from-blue-500/40 hover:to-purple-500/40 backdrop-blur-sm rounded-2xl px-5 py-3 border border-blue-400/30 hover:border-yellow-400/60 transition-all duration-300 transform hover:scale-105 hover:shadow-lg hover:shadow-blue-400/30 animate-pulse hover:animate-none"
               >
                 <div className="flex items-center space-x-3">
-                  {/* Globe icon with sparkle */}
+                  {/* Language icon with sparkle */}
                   <div className="relative">
-                    <span className="text-xl group-hover:animate-bounce transition-all duration-300">🌍</span>
+                    <span className="text-xl group-hover:animate-bounce transition-all duration-300">💬</span>
                     <span className="absolute -top-1 -right-1 text-xs animate-ping">✨</span>
                   </div>
                   
@@ -364,50 +340,6 @@ function MainUI({
           </p>
         </div>
 
-        {/* Language Selection Prompt */}
-        {showLanguagePrompt && detectedLanguage && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-fadeIn">
-            <div className="bg-gradient-to-br from-purple-800/90 to-blue-800/90 backdrop-blur-lg rounded-3xl p-8 max-w-md mx-4 border border-white/20 shadow-2xl animate-zoomIn">
-              <div className="text-center">
-                <div className="text-4xl mb-4">🌍</div>
-                <h3 className="text-2xl font-bold mb-4 text-yellow-400">
-                  {texts.language_detected}
-                </h3>
-                <p className="text-lg mb-2 text-blue-200">
-                  <strong>{detectedLanguage.name}</strong>
-                </p>
-                <p className="text-md mb-6 text-gray-300">
-                  {texts.language_switch_question} {detectedLanguage.name}?
-                </p>
-                
-                <div className="flex flex-col space-y-3">
-                  <button
-                    onClick={() => onLanguageSwitch(true)}
-                    className="w-full py-3 px-6 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 rounded-2xl font-semibold transition-all transform hover:scale-105 flex items-center justify-center space-x-2"
-                  >
-                    <span>✅</span>
-                    <span>{texts.language_switch_yes}</span>
-                  </button>
-                  
-                  <button
-                    onClick={() => onLanguageSwitch(false)}
-                    className="w-full py-3 px-6 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 rounded-2xl font-semibold transition-all transform hover:scale-105 flex items-center justify-center space-x-2"
-                  >
-                    <span>🇺🇸</span>
-                    <span>{texts.language_switch_no}</span>
-                  </button>
-                  
-                  <button
-                    onClick={onLanguageDismiss}
-                    className="w-full py-2 px-4 text-sm text-gray-400 hover:text-white transition-colors underline"
-                  >
-                    {texts.language_switch_dismiss}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Translation Loading Overlay */}
         {isLoadingTranslation && (
@@ -480,7 +412,7 @@ function MainUI({
                 
                 {/* Header */}
                 <div className="relative mb-6">
-                  <div className="text-4xl mb-2 animate-bounce">🌍</div>
+                  <div className="text-4xl mb-2 animate-bounce">💬</div>
                   <h3 className="text-2xl font-bold text-yellow-400">
                     {texts.choose_language}
                   </h3>
@@ -499,7 +431,7 @@ function MainUI({
                   <p className="text-sm text-gray-300 mb-1">{texts.current_language}</p>
                   <div className="flex items-center justify-center space-x-2">
                     <span className="text-2xl">
-                      {currentLanguage === 'en' ? '🔤' : '🌍'}
+                      {currentLanguage === 'en' ? '🔤' : '💬'}
                     </span>
                     <span className="text-lg font-semibold text-yellow-400">
                       {currentLanguage === 'en' 
@@ -545,7 +477,7 @@ function MainUI({
                               : 'bg-gradient-to-r from-green-600/80 to-emerald-600/80 hover:from-green-500/90 hover:to-emerald-500/90 border border-white/30 hover:border-yellow-400/50 hover:shadow-lg hover:shadow-green-500/20'
                           }`}
                         >
-                          <span className="text-2xl">🌍</span>
+                          <span className="text-2xl">💬</span>
                           <span>{languageName}</span>
                           {currentLanguage === languageCode && <span className="text-yellow-400">✓</span>}
                         </button>
