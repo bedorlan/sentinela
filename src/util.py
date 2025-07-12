@@ -34,8 +34,10 @@ def extract_score_and_reason(response: str) -> tuple[int, str]:
         
         digits = re.findall(r'\d+', response)
         if digits:
-            print(f"digits={digits}")
-            return int(digits[0]), ""
+            score = int(digits[0])
+            if score >= 0 and score <= 100:
+                print(f"digits={digits}")
+                return score, ""
         
         print(f"weird ai response={response}")
         return 0, ""

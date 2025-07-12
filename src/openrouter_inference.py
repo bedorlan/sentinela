@@ -45,6 +45,9 @@ class OpenRouterInference(InferenceEngine):
         
         try:
             ai_response = await self._analyze_frame_with_ai([frame_data], prompt)
+            if not ai_response:
+                return False, None
+
             score, reason = util.extract_score_and_reason(ai_response)            
             return True, (score, reason)
         finally:
@@ -56,8 +59,7 @@ class OpenRouterInference(InferenceEngine):
             content = []
             for frame_data in frames:
                 resized_frame_data = util.resize_frame(frame_data)
-                base64_image = base64.b64encode(resized_frame_data).decode('utf-8')
-                
+                base64_image = base64.b64encode(resized_frame_data).decode('utf-8')                
                 content.append({
                     "type": "image_url",
                     "image_url": {
@@ -79,7 +81,8 @@ class OpenRouterInference(InferenceEngine):
             return response_text
             
         except Exception as e:
-            return f"AI analysis error: {str(e)}"
+            print(f"AI analysis error: {str(e)}")
+            return ""
     
     async def _run_ai_inference(self, messages):
         """Async worker function for AI inference"""
@@ -90,7 +93,8 @@ class OpenRouterInference(InferenceEngine):
             )
             return response.choices[0].message.content
         except Exception as e:
-            return f"AI analysis error: {str(e)}"
+            print(f"AI inference error: {str(e)}")
+            return ""
     
     async def translate(self, texts: Dict[str, str], locale: str) -> Dict[str, str]:
         """
