@@ -1,5 +1,5 @@
 from datetime import datetime
-from fastapi import FastAPI, WebSocket, Depends, HTTPException
+from fastapi import FastAPI, WebSocket, Depends, HTTPException, Cookie
 from fastapi.responses import FileResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.staticfiles import StaticFiles
@@ -7,11 +7,14 @@ import asyncio
 import json
 import msgpack
 import os
+import uuid
 
 from src.inference_engine import InferenceEngine
 
+
 app = FastAPI()
 security = HTTPBasic()
+sessions = {}
 inference_engine: InferenceEngine = None
 
 if os.getenv("OPENROUTER_API_KEY"):
@@ -41,8 +44,24 @@ def authenticate(credentials: HTTPBasicCredentials = Depends(security)):
     return credentials.username
 
 @app.get("/")
-async def read_root(username: str = Depends(authenticate)):
-    return FileResponse("static/index.html")
+async def read_root(username: str = Depends(authenticate), session_id: str = Cookie(None)):
+    if not session_id or session_id not in sessions:
+        session_id = str(uuid.uuid4())
+        sessions[session_id] = {
+            "username": username,
+            "created_at": datetime.now(),
+        }
+        print(f"New session created: {session_id} for user: {username}")
+    
+    response = FileResponse("static/index.html")
+    response.set_cookie(
+        key="session_id",
+        value=session_id,
+        httponly=True,
+        samesite="strict",
+        secure=False
+    )
+    return response
 
 @app.get("/favicon.ico")
 async def read_icon():
@@ -82,8 +101,22 @@ async def get_translations(language: str):
 
 @app.websocket("/ws/frames")
 async def websocket_frames(websocket: WebSocket):
+    session_id = None
+    cookies = websocket.headers.get("cookie")
+    if cookies:
+        for cookie in cookies.split("; "):
+            if cookie.startswith("session_id="):
+                session_id = cookie.split("=", 1)[1]
+                break
+    
+    if not session_id or session_id not in sessions:
+        print(f"WebSocket connection rejected: Invalid session ID: {session_id}")
+        await websocket.close(code=1008, reason="Invalid session")
+        return
+    
     await websocket.accept()
-    print(f"WebSocket connection established at {datetime.now()}")
+    session_info = sessions[session_id]
+    print(f"WebSocket connection established at {datetime.now()} for session: {session_id}, user: {session_info['username']}")
     
     try:
         frame_count = 0
