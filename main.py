@@ -56,7 +56,7 @@ async def health_check():
 async def get_translations(language: str):
     """Get translations for the specified language"""
     try:
-        with open("static/locales/extracted_texts.json", "r", encoding="utf-8") as f:
+        with open("static/locales/translation_keys.json", "r", encoding="utf-8") as f:
             base_texts = json.load(f)
     
         if language.lower().startswith('en'):
