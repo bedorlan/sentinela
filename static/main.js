@@ -14,6 +14,7 @@ const DetectionState = {
 
 const DETECTION_THRESHOLD = 90;
 
+
 function MainPage() {
   const [texts, setTexts] = useState({});
   const [prompt, setPrompt] = useState("");
@@ -28,10 +29,8 @@ function MainPage() {
     sms: false,
     webhook: false,
   });
-  const [detectedLanguage, setDetectedLanguage] = useState(null);
   const [currentLanguage, setCurrentLanguage] = useState('en');
   const [isLoadingTranslation, setIsLoadingTranslation] = useState(false);
-  const [showLanguageSelector, setShowLanguageSelector] = useState(false);
 
   const loadTexts = async (languageCode = 'en', showLoading = false) => {
     try {
@@ -42,14 +41,10 @@ function MainPage() {
       const response = await fetch(`/translations/${languageCode}`);
       if (response.ok) {
         const data = await response.json();
-        console.log(`${languageCode} translations loaded from backend`);
         setTexts(data.translations);
         setCurrentLanguage(languageCode);
-      } else {
-        console.error(`Failed to load ${languageCode} translations`);
       }
     } catch (error) {
-      console.error('Error loading translations:', error);
     } finally {
       if (showLoading) {
         setIsLoadingTranslation(false);
@@ -58,21 +53,7 @@ function MainPage() {
   };
 
   useEffect(() => {
-    const initializeLanguage = async () => {
-      await loadTexts('en');
-      
-      const browserLanguage = navigator.language;
-      const languageCode = browserLanguage.split('-')[0];
-      
-      if (languageCode !== 'en') {
-        setDetectedLanguage({
-          code: languageCode,
-          name: new Intl.DisplayNames(['en'], {type: 'language'}).of(languageCode)
-        });
-      }
-    };
-
-    initializeLanguage();
+    loadTexts('en');
   }, []);
 
   const placeholders = [
@@ -137,21 +118,7 @@ function MainPage() {
   }, [lastMessage]);
 
 
-  const handleOpenLanguageSelector = () => {
-    const browserLanguage = navigator.language;
-    const languageCode = browserLanguage.split('-')[0];
-    
-    if (languageCode !== 'en') {
-      setDetectedLanguage({
-        code: languageCode,
-        name: new Intl.DisplayNames(['en'], {type: 'language'}).of(languageCode)
-      });
-    }
-    setShowLanguageSelector(true);
-  };
-
-  const handleLanguageSelectorSwitch = async (languageCode) => {
-    setShowLanguageSelector(false);
+  const handleLanguageSwitch = async (languageCode) => {
     if (languageCode !== currentLanguage) {
       await loadTexts(languageCode, true);
     }
@@ -206,9 +173,7 @@ function MainPage() {
       prompt={prompt}
       reason={reason}
       texts={texts}
-      detectedLanguage={detectedLanguage}
       isLoadingTranslation={isLoadingTranslation}
-      showLanguageSelector={showLanguageSelector}
       currentLanguage={currentLanguage}
       //
       onFpsChange={(newFps) => setFps(newFps)}
@@ -233,10 +198,65 @@ function MainPage() {
         console.log("Stopped watching");
       }}
       onPromptChange={(newPrompt) => setPrompt(newPrompt)}
-      onOpenLanguageSelector={handleOpenLanguageSelector}
-      onLanguageSelectorSwitch={handleLanguageSelectorSwitch}
-      onCloseLanguageSelector={() => setShowLanguageSelector(false)}
+      onLanguageSwitch={handleLanguageSwitch}
     />
+  );
+}
+
+function TranslationLoadingModal({ isLoading, texts }) {
+  if (!isLoading) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 animate-fadeIn">
+      <div className="bg-gradient-to-br from-purple-800/95 to-blue-800/95 backdrop-blur-lg rounded-3xl p-12 max-w-lg mx-4 border border-white/20 shadow-2xl animate-zoomIn text-center">
+        <div className="relative mb-8">
+          <div className="w-20 h-20 mx-auto relative">
+            <div className="absolute inset-0 rounded-full border-4 border-yellow-400/30"></div>
+            <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-yellow-400 animate-spin"></div>
+            <div className="absolute inset-2 bg-gradient-to-br from-yellow-400/40 to-orange-500/40 rounded-full animate-pulse"></div>
+            <div className="absolute inset-0 flex items-center justify-center text-3xl animate-bounce">
+              🌟
+            </div>
+          </div>
+          
+          {[...Array(6)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute text-yellow-400 animate-ping"
+              style={{
+                left: `${20 + Math.random() * 60}%`,
+                top: `${20 + Math.random() * 60}%`,
+                animationDelay: `${Math.random() * 2}s`,
+                animationDuration: `${2 + Math.random() * 2}s`,
+              }}
+            >
+              ✨
+            </div>
+          ))}
+        </div>
+
+        <h3 className="text-3xl font-bold mb-4 text-yellow-400 animate-pulse">
+          {texts.loading_translation}
+        </h3>
+        
+        <p className="text-lg text-blue-200 mb-6">
+          {texts.loading_please_wait}
+        </p>
+        
+        <div className="flex justify-center space-x-2">
+          {[...Array(3)].map((_, i) => (
+            <div
+              key={i}
+              className="w-3 h-3 bg-yellow-400 rounded-full animate-bounce"
+              style={{
+                animationDelay: `${i * 0.2}s`,
+                animationDuration: '1s'
+              }}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -252,9 +272,7 @@ function MainUI({
   prompt,
   reason,
   texts,
-  detectedLanguage,
   isLoadingTranslation,
-  showLanguageSelector,
   currentLanguage,
   onFpsChange,
   onHandleFrame,
@@ -263,9 +281,7 @@ function MainUI({
   onPromptChange,
   onStartWatching,
   onStopWatching,
-  onOpenLanguageSelector,
-  onLanguageSelectorSwitch,
-  onCloseLanguageSelector,
+  onLanguageSwitch,
 }) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 text-white overflow-hidden relative">
@@ -290,211 +306,102 @@ function MainUI({
       <div className="relative z-10 container mx-auto px-4 py-12">
         {/* Header */}
         <div className="text-center mb-12">
-          <div className="flex items-center justify-center space-x-6 mb-4">
+          <div className="mb-4">
             <h1 className="text-6xl font-bold animate-bounce">
               <span className="inline-block">👁️</span> Sentinela
             </h1>
-            
-            {/* Language Selector Button - Only show when non-English detected */}
-            {detectedLanguage && (
-              <button
-                onClick={onOpenLanguageSelector}
-                className="group relative bg-gradient-to-r from-blue-500/20 to-purple-500/20 hover:from-blue-500/40 hover:to-purple-500/40 backdrop-blur-sm rounded-2xl px-5 py-3 border border-blue-400/30 hover:border-yellow-400/60 transition-all duration-300 transform hover:scale-105 hover:shadow-lg hover:shadow-blue-400/30 animate-pulse hover:animate-none"
-              >
-                <div className="flex items-center space-x-3">
-                  {/* Language icon with sparkle */}
-                  <div className="relative">
-                    <span className="text-xl group-hover:animate-bounce transition-all duration-300">💬</span>
-                    <span className="absolute -top-1 -right-1 text-xs animate-ping">✨</span>
-                  </div>
-                  
-                  {/* Language suggestion text */}
-                  <div className="text-left hidden sm:block">
-                    <div className="text-xs text-blue-200 group-hover:text-yellow-200 transition-colors">
-                      Switch to
-                    </div>
-                    <div className="text-sm font-semibold text-white group-hover:text-yellow-300 transition-colors">
-                      {detectedLanguage.name}
-                    </div>
-                  </div>
-                  
-                  {/* Mobile text */}
-                  <span className="text-sm font-medium text-white group-hover:text-yellow-200 transition-colors sm:hidden">
-                    {detectedLanguage.code.toUpperCase()}
-                  </span>
-                  
-                  {/* Arrow indicator */}
-                  <span className="text-xs text-blue-300 group-hover:text-yellow-400 transition-colors group-hover:animate-bounce">
-                    →
-                  </span>
-                </div>
-                
-                {/* Magic glow effect */}
-                <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-yellow-400/0 to-orange-400/0 group-hover:from-yellow-400/20 group-hover:to-orange-400/20 transition-all duration-300 blur-sm"></div>
-              </button>
-            )}
           </div>
           
-          <p className="text-2xl text-blue-200">
-            {texts.tagline}
-          </p>
+          <div className="max-w-4xl mx-auto relative">
+            <p className="text-2xl text-blue-200 text-center">
+              {texts.tagline}
+            </p>
+            
+            <div className="absolute right-0 top-1/2 transform -translate-y-1/2">
+              {(() => {
+                const browserLanguage = navigator.language;
+                const languageCode = browserLanguage.split('-')[0];
+                
+                if (languageCode === 'en') {
+                  return null;
+                }
+                
+                if (currentLanguage === 'en') {
+                  const languageName = new Intl.DisplayNames(['en'], {type: 'language'}).of(languageCode);
+                  return (
+                    <button
+                      onClick={() => onLanguageSwitch(languageCode)}
+                      className="group relative bg-gradient-to-r from-blue-500/20 to-purple-500/20 hover:from-blue-500/40 hover:to-purple-500/40 backdrop-blur-sm rounded-2xl px-5 py-3 border border-blue-400/30 hover:border-yellow-400/60 transition-all duration-300 transform hover:scale-105 hover:shadow-lg hover:shadow-blue-400/30 animate-pulse hover:animate-none"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className="relative">
+                          <span className="text-xl group-hover:animate-bounce transition-all duration-300">💬</span>
+                          <span className="absolute -top-1 -right-1 text-xs animate-ping">✨</span>
+                        </div>
+                        
+                        <div className="text-left hidden sm:block">
+                          <div className="text-xs text-blue-200 group-hover:text-yellow-200 transition-colors">
+                            Switch to
+                          </div>
+                          <div className="text-sm font-semibold text-white group-hover:text-yellow-300 transition-colors">
+                            {languageName}
+                          </div>
+                        </div>
+                        
+                        <span className="text-sm font-medium text-white group-hover:text-yellow-200 transition-colors sm:hidden">
+                          {languageCode.toUpperCase()}
+                        </span>
+                        
+                        <span className="text-xs text-blue-300 group-hover:text-yellow-400 transition-colors group-hover:animate-bounce">
+                          →
+                        </span>
+                      </div>
+                      
+                      <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-yellow-400/0 to-orange-400/0 group-hover:from-yellow-400/20 group-hover:to-orange-400/20 transition-all duration-300 blur-sm"></div>
+                    </button>
+                  );
+                }
+                
+                return (
+                  <button
+                    onClick={() => onLanguageSwitch('en')}
+                    className="group relative bg-gradient-to-r from-green-500/20 to-emerald-500/20 hover:from-green-500/40 hover:to-emerald-500/40 backdrop-blur-sm rounded-2xl px-5 py-3 border border-green-400/30 hover:border-yellow-400/60 transition-all duration-300 transform hover:scale-105 hover:shadow-lg hover:shadow-green-400/30 animate-pulse hover:animate-none"
+                  >
+                    <div className="flex items-center space-x-3">
+                      <div className="relative">
+                        <span className="text-xl group-hover:animate-bounce transition-all duration-300">✨</span>
+                        <span className="absolute -top-1 -right-1 text-xs animate-ping">🔄</span>
+                      </div>
+                      
+                      <div className="text-left hidden sm:block">
+                        <div className="text-xs text-green-200 group-hover:text-yellow-200 transition-colors">
+                          Switch to
+                        </div>
+                        <div className="text-sm font-semibold text-white group-hover:text-yellow-300 transition-colors">
+                          English
+                        </div>
+                      </div>
+                      
+                      <span className="text-sm font-medium text-white group-hover:text-yellow-200 transition-colors sm:hidden">
+                        EN
+                      </span>
+                      
+                      <span className="text-xs text-green-300 group-hover:text-yellow-400 transition-colors group-hover:animate-bounce">
+                        →
+                      </span>
+                    </div>
+                    
+                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-yellow-400/0 to-orange-400/0 group-hover:from-yellow-400/20 group-hover:to-orange-400/20 transition-all duration-300 blur-sm"></div>
+                  </button>
+                );
+              })()}
+            </div>
+          </div>
         </div>
 
 
-        {/* Translation Loading Overlay */}
-        {isLoadingTranslation && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 animate-fadeIn">
-            <div className="bg-gradient-to-br from-purple-800/95 to-blue-800/95 backdrop-blur-lg rounded-3xl p-12 max-w-lg mx-4 border border-white/20 shadow-2xl animate-zoomIn text-center">
-              
-              {/* Magical Loading Animation */}
-              <div className="relative mb-8">
-                <div className="w-20 h-20 mx-auto relative">
-                  {/* Spinning outer ring */}
-                  <div className="absolute inset-0 rounded-full border-4 border-yellow-400/30"></div>
-                  <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-yellow-400 animate-spin"></div>
-                  
-                  {/* Pulsing inner circle */}
-                  <div className="absolute inset-2 bg-gradient-to-br from-yellow-400/40 to-orange-500/40 rounded-full animate-pulse"></div>
-                  
-                  {/* Central icon */}
-                  <div className="absolute inset-0 flex items-center justify-center text-3xl animate-bounce">
-                    🌟
-                  </div>
-                </div>
-                
-                {/* Floating sparkles */}
-                {[...Array(6)].map((_, i) => (
-                  <div
-                    key={i}
-                    className="absolute text-yellow-400 animate-ping"
-                    style={{
-                      left: `${20 + Math.random() * 60}%`,
-                      top: `${20 + Math.random() * 60}%`,
-                      animationDelay: `${Math.random() * 2}s`,
-                      animationDuration: `${2 + Math.random() * 2}s`,
-                    }}
-                  >
-                    ✨
-                  </div>
-                ))}
-              </div>
+        <TranslationLoadingModal isLoading={isLoadingTranslation} texts={texts} />
 
-              <h3 className="text-3xl font-bold mb-4 text-yellow-400 animate-pulse">
-                {texts.loading_translation}
-              </h3>
-              
-              <p className="text-lg text-blue-200 mb-6">
-                {texts.loading_please_wait}
-              </p>
-              
-              {/* Animated progress dots */}
-              <div className="flex justify-center space-x-2">
-                {[...Array(3)].map((_, i) => (
-                  <div
-                    key={i}
-                    className="w-3 h-3 bg-yellow-400 rounded-full animate-bounce"
-                    style={{
-                      animationDelay: `${i * 0.2}s`,
-                      animationDuration: '1s'
-                    }}
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Manual Language Selector */}
-        {showLanguageSelector && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 animate-fadeIn">
-            <div className="bg-gradient-to-br from-purple-800/95 to-blue-800/95 backdrop-blur-lg rounded-3xl p-8 max-w-md mx-4 border border-white/20 shadow-2xl animate-zoomIn">
-              <div className="text-center">
-                
-                {/* Header */}
-                <div className="relative mb-6">
-                  <div className="text-4xl mb-2 animate-bounce">💬</div>
-                  <h3 className="text-2xl font-bold text-yellow-400">
-                    {texts.choose_language}
-                  </h3>
-                  
-                  {/* Close button */}
-                  <button
-                    onClick={onCloseLanguageSelector}
-                    className="absolute -top-2 -right-2 w-8 h-8 bg-red-500/80 hover:bg-red-500 rounded-full flex items-center justify-center text-white hover:scale-110 transition-all duration-200"
-                  >
-                    ✕
-                  </button>
-                </div>
-                
-                {/* Current Language Display */}
-                <div className="bg-gradient-to-r from-yellow-400/20 to-orange-400/20 rounded-2xl p-4 mb-6 border border-yellow-400/30">
-                  <p className="text-sm text-gray-300 mb-1">{texts.current_language}</p>
-                  <div className="flex items-center justify-center space-x-2">
-                    <span className="text-2xl">
-                      {currentLanguage === 'en' ? '🔤' : '💬'}
-                    </span>
-                    <span className="text-lg font-semibold text-yellow-400">
-                      {currentLanguage === 'en' 
-                        ? 'English' 
-                        : new Intl.DisplayNames(['en'], {type: 'language'}).of(currentLanguage)
-                      }
-                    </span>
-                  </div>
-                </div>
-
-                {/* Language Options */}
-                <div className="space-y-3 mb-6">
-                  
-                  {/* English Option */}
-                  <button
-                    onClick={() => onLanguageSelectorSwitch('en')}
-                    disabled={currentLanguage === 'en'}
-                    className={`w-full py-4 px-6 rounded-2xl font-semibold transition-all transform hover:scale-105 flex items-center justify-center space-x-3 ${
-                      currentLanguage === 'en' 
-                        ? 'bg-gray-600/50 border border-gray-500/50 cursor-not-allowed opacity-60' 
-                        : 'bg-gradient-to-r from-blue-600/80 to-purple-600/80 hover:from-blue-500/90 hover:to-purple-500/90 border border-white/30 hover:border-yellow-400/50 hover:shadow-lg hover:shadow-blue-500/20'
-                    }`}
-                  >
-                    <span className="text-2xl">🔤</span>
-                    <span>English</span>
-                    {currentLanguage === 'en' && <span className="text-yellow-400">✓</span>}
-                  </button>
-
-                  {/* Browser Language Option (if different from English) */}
-                  {(() => {
-                    const browserLanguage = navigator.language;
-                    const languageCode = browserLanguage.split('-')[0];
-                    const languageName = new Intl.DisplayNames(['en'], {type: 'language'}).of(languageCode);
-                    
-                    if (languageCode !== 'en') {
-                      return (
-                        <button
-                          onClick={() => onLanguageSelectorSwitch(languageCode)}
-                          disabled={currentLanguage === languageCode}
-                          className={`w-full py-4 px-6 rounded-2xl font-semibold transition-all transform hover:scale-105 flex items-center justify-center space-x-3 ${
-                            currentLanguage === languageCode 
-                              ? 'bg-gray-600/50 border border-gray-500/50 cursor-not-allowed opacity-60' 
-                              : 'bg-gradient-to-r from-green-600/80 to-emerald-600/80 hover:from-green-500/90 hover:to-emerald-500/90 border border-white/30 hover:border-yellow-400/50 hover:shadow-lg hover:shadow-green-500/20'
-                          }`}
-                        >
-                          <span className="text-2xl">💬</span>
-                          <span>{languageName}</span>
-                          {currentLanguage === languageCode && <span className="text-yellow-400">✓</span>}
-                        </button>
-                      );
-                    }
-                    return null;
-                  })()}
-                </div>
-                
-                {/* Info text */}
-                <p className="text-sm text-gray-400">
-                  Select your preferred language for the interface
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Main Content */}
         <div className="max-w-4xl mx-auto">

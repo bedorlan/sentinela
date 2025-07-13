@@ -29,8 +29,8 @@
   "alert_me": "Alert me",
   "loading_translation": "Translating to your language...",
   "loading_please_wait": "Please wait while we prepare everything for you",
-  "language_button": "🌍 Language",
+  "language_button": "💬 Language",
   "choose_language": "Choose Your Language",
   "current_language": "Current:",
-  "close": "Close"
+  "select_language_info": "Select your preferred language for the interface"
 }
