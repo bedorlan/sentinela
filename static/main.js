@@ -203,63 +203,6 @@ function MainPage() {
   );
 }
 
-function TranslationLoadingModal({ isLoading, texts }) {
-  if (!isLoading) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 animate-fadeIn">
-      <div className="bg-gradient-to-br from-purple-800/95 to-blue-800/95 backdrop-blur-lg rounded-3xl p-12 max-w-lg mx-4 border border-white/20 shadow-2xl animate-zoomIn text-center">
-        <div className="relative mb-8">
-          <div className="w-20 h-20 mx-auto relative">
-            <div className="absolute inset-0 rounded-full border-4 border-yellow-400/30"></div>
-            <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-yellow-400 animate-spin"></div>
-            <div className="absolute inset-2 bg-gradient-to-br from-yellow-400/40 to-orange-500/40 rounded-full animate-pulse"></div>
-            <div className="absolute inset-0 flex items-center justify-center text-3xl animate-bounce">
-              🌟
-            </div>
-          </div>
-          
-          {[...Array(6)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute text-yellow-400 animate-ping"
-              style={{
-                left: `${20 + Math.random() * 60}%`,
-                top: `${20 + Math.random() * 60}%`,
-                animationDelay: `${Math.random() * 2}s`,
-                animationDuration: `${2 + Math.random() * 2}s`,
-              }}
-            >
-              ✨
-            </div>
-          ))}
-        </div>
-
-        <h3 className="text-3xl font-bold mb-4 text-yellow-400 animate-pulse">
-          {texts.loading_translation}
-        </h3>
-        
-        <p className="text-lg text-blue-200 mb-6">
-          {texts.loading_please_wait}
-        </p>
-        
-        <div className="flex justify-center space-x-2">
-          {[...Array(3)].map((_, i) => (
-            <div
-              key={i}
-              className="w-3 h-3 bg-yellow-400 rounded-full animate-bounce"
-              style={{
-                animationDelay: `${i * 0.2}s`,
-                animationDuration: '1s'
-              }}
-            />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function MainUI({
   confidence,
   detectionState,
@@ -318,83 +261,10 @@ function MainUI({
             </p>
             
             <div className="absolute right-0 top-1/2 transform -translate-y-1/2">
-              {(() => {
-                const browserLanguage = navigator.language;
-                const languageCode = browserLanguage.split('-')[0];
-                
-                if (languageCode === 'en') {
-                  return null;
-                }
-                
-                if (currentLanguage === 'en') {
-                  const languageName = new Intl.DisplayNames(['en'], {type: 'language'}).of(languageCode);
-                  return (
-                    <button
-                      onClick={() => onLanguageSwitch(languageCode)}
-                      className="group relative bg-gradient-to-r from-blue-500/20 to-purple-500/20 hover:from-blue-500/40 hover:to-purple-500/40 backdrop-blur-sm rounded-2xl px-5 py-3 border border-blue-400/30 hover:border-yellow-400/60 transition-all duration-300 transform hover:scale-105 hover:shadow-lg hover:shadow-blue-400/30 animate-pulse hover:animate-none"
-                    >
-                      <div className="flex items-center space-x-3">
-                        <div className="relative">
-                          <span className="text-xl group-hover:animate-bounce transition-all duration-300">💬</span>
-                          <span className="absolute -top-1 -right-1 text-xs animate-ping">✨</span>
-                        </div>
-                        
-                        <div className="text-left hidden sm:block">
-                          <div className="text-xs text-blue-200 group-hover:text-yellow-200 transition-colors">
-                            Switch to
-                          </div>
-                          <div className="text-sm font-semibold text-white group-hover:text-yellow-300 transition-colors">
-                            {languageName}
-                          </div>
-                        </div>
-                        
-                        <span className="text-sm font-medium text-white group-hover:text-yellow-200 transition-colors sm:hidden">
-                          {languageCode.toUpperCase()}
-                        </span>
-                        
-                        <span className="text-xs text-blue-300 group-hover:text-yellow-400 transition-colors group-hover:animate-bounce">
-                          →
-                        </span>
-                      </div>
-                      
-                      <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-yellow-400/0 to-orange-400/0 group-hover:from-yellow-400/20 group-hover:to-orange-400/20 transition-all duration-300 blur-sm"></div>
-                    </button>
-                  );
-                }
-                
-                return (
-                  <button
-                    onClick={() => onLanguageSwitch('en')}
-                    className="group relative bg-gradient-to-r from-green-500/20 to-emerald-500/20 hover:from-green-500/40 hover:to-emerald-500/40 backdrop-blur-sm rounded-2xl px-5 py-3 border border-green-400/30 hover:border-yellow-400/60 transition-all duration-300 transform hover:scale-105 hover:shadow-lg hover:shadow-green-400/30 animate-pulse hover:animate-none"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div className="relative">
-                        <span className="text-xl group-hover:animate-bounce transition-all duration-300">✨</span>
-                        <span className="absolute -top-1 -right-1 text-xs animate-ping">🔄</span>
-                      </div>
-                      
-                      <div className="text-left hidden sm:block">
-                        <div className="text-xs text-green-200 group-hover:text-yellow-200 transition-colors">
-                          Switch to
-                        </div>
-                        <div className="text-sm font-semibold text-white group-hover:text-yellow-300 transition-colors">
-                          English
-                        </div>
-                      </div>
-                      
-                      <span className="text-sm font-medium text-white group-hover:text-yellow-200 transition-colors sm:hidden">
-                        EN
-                      </span>
-                      
-                      <span className="text-xs text-green-300 group-hover:text-yellow-400 transition-colors group-hover:animate-bounce">
-                        →
-                      </span>
-                    </div>
-                    
-                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-yellow-400/0 to-orange-400/0 group-hover:from-yellow-400/20 group-hover:to-orange-400/20 transition-all duration-300 blur-sm"></div>
-                  </button>
-                );
-              })()}
+              <LanguageSwitcher 
+                currentLanguage={currentLanguage}
+                onLanguageSwitch={onLanguageSwitch}
+              />
             </div>
           </div>
         </div>
@@ -643,6 +513,136 @@ function MainUI({
           100% { opacity: 1; }
         }
       `}</style>
+    </div>
+  );
+}
+function LanguageSwitcher({ currentLanguage, onLanguageSwitch }) {
+  const browserLanguage = navigator.language;
+  const languageCode = browserLanguage.split('-')[0];
+  
+  if (languageCode === 'en' && currentLanguage === 'en') {
+    return null;
+  }
+  
+  const isEnglishActive = currentLanguage === 'en';
+  const targetLanguage = isEnglishActive ? languageCode : 'en';
+  const languageName = isEnglishActive 
+    ? new Intl.DisplayNames(['en'], {type: 'language'}).of(languageCode)
+    : 'English';
+  
+  const buttonConfig = isEnglishActive ? {
+    gradient: 'from-blue-500/20 to-purple-500/20',
+    hoverGradient: 'from-blue-500/40 to-purple-500/40',
+    borderColor: 'border-blue-400/30',
+    shadowColor: 'shadow-blue-400/30',
+    icon: '💬',
+    iconPing: '✨',
+    textColor: 'text-blue-200',
+    iconColor: 'text-blue-300',
+    shortLabel: languageCode.toUpperCase()
+  } : {
+    gradient: 'from-green-500/20 to-emerald-500/20',
+    hoverGradient: 'from-green-500/40 to-emerald-500/40',
+    borderColor: 'border-green-400/30',
+    shadowColor: 'shadow-green-400/30',
+    icon: '✨',
+    iconPing: '🔄',
+    textColor: 'text-green-200',
+    iconColor: 'text-green-300',
+    shortLabel: 'EN'
+  };
+  
+  return (
+    <button
+      onClick={() => onLanguageSwitch(targetLanguage)}
+      className={`group relative bg-gradient-to-r ${buttonConfig.gradient} hover:${buttonConfig.hoverGradient} backdrop-blur-sm rounded-2xl px-5 py-3 border ${buttonConfig.borderColor} hover:border-yellow-400/60 transition-all duration-300 transform hover:scale-105 hover:shadow-lg hover:${buttonConfig.shadowColor} animate-pulse hover:animate-none`}
+    >
+      <div className="flex items-center space-x-3">
+        <div className="relative">
+          <span className="text-xl group-hover:animate-bounce transition-all duration-300">
+            {buttonConfig.icon}
+          </span>
+          <span className="absolute -top-1 -right-1 text-xs animate-ping">
+            {buttonConfig.iconPing}
+          </span>
+        </div>
+        
+        <div className="text-left hidden sm:block">
+          <div className={`text-xs ${buttonConfig.textColor} group-hover:text-yellow-200 transition-colors`}>
+            Switch to
+          </div>
+          <div className="text-sm font-semibold text-white group-hover:text-yellow-300 transition-colors">
+            {languageName}
+          </div>
+        </div>
+        
+        <span className="text-sm font-medium text-white group-hover:text-yellow-200 transition-colors sm:hidden">
+          {buttonConfig.shortLabel}
+        </span>
+        
+        <span className={`text-xs ${buttonConfig.iconColor} group-hover:text-yellow-400 transition-colors group-hover:animate-bounce`}>
+          →
+        </span>
+      </div>
+      
+      <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-yellow-400/0 to-orange-400/0 group-hover:from-yellow-400/20 group-hover:to-orange-400/20 transition-all duration-300 blur-sm"></div>
+    </button>
+  );
+}
+
+function TranslationLoadingModal({ isLoading, texts }) {
+  if (!isLoading) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 animate-fadeIn">
+      <div className="bg-gradient-to-br from-purple-800/95 to-blue-800/95 backdrop-blur-lg rounded-3xl p-12 max-w-lg mx-4 border border-white/20 shadow-2xl animate-zoomIn text-center">
+        <div className="relative mb-8">
+          <div className="w-20 h-20 mx-auto relative">
+            <div className="absolute inset-0 rounded-full border-4 border-yellow-400/30"></div>
+            <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-yellow-400 animate-spin"></div>
+            <div className="absolute inset-2 bg-gradient-to-br from-yellow-400/40 to-orange-500/40 rounded-full animate-pulse"></div>
+            <div className="absolute inset-0 flex items-center justify-center text-3xl animate-bounce">
+              🌟
+            </div>
+          </div>
+          
+          {[...Array(6)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute text-yellow-400 animate-ping"
+              style={{
+                left: `${20 + Math.random() * 60}%`,
+                top: `${20 + Math.random() * 60}%`,
+                animationDelay: `${Math.random() * 2}s`,
+                animationDuration: `${2 + Math.random() * 2}s`,
+              }}
+            >
+              ✨
+            </div>
+          ))}
+        </div>
+
+        <h3 className="text-3xl font-bold mb-4 text-yellow-400 animate-pulse">
+          {texts.loading_translation}
+        </h3>
+        
+        <p className="text-lg text-blue-200 mb-6">
+          {texts.loading_please_wait}
+        </p>
+        
+        <div className="flex justify-center space-x-2">
+          {[...Array(3)].map((_, i) => (
+            <div
+              key={i}
+              className="w-3 h-3 bg-yellow-400 rounded-full animate-bounce"
+              style={{
+                animationDelay: `${i * 0.2}s`,
+                animationDuration: '1s'
+              }}
+            />
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
