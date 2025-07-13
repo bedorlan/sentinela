@@ -24,6 +24,7 @@ const Events = Object.fromEntries(
     "onDetectionUpdate",
     "onFpsChange",
     "onImageQualityChange",
+    "onLanguageChange",
     "onLanguageLoadError",
     "onLanguageLoadStart",
     "onLanguageLoadSuccess",
@@ -53,49 +54,11 @@ function MainPage() {
     texts,
   } = state;
 
-  const loadTexts = async (languageCode = "en", showLoading = false) => {
-    try {
-      dispatch({
-        type: Events.onLanguageLoadStart,
-        payload: { showLoading },
-      });
-
-      const response = await fetch(`/translations/${languageCode}`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      dispatch({
-        type: Events.onLanguageLoadSuccess,
-        payload: {
-          texts: data.translations,
-          languageCode,
-        },
-      });
-    } catch (error) {
-      console.error("Error loading translations:", error);
-      dispatch({
-        type: Events.onLanguageLoadError,
-        payload: { showLoading },
-      });
-    }
-  };
-
-  useEffect(() => {
-    loadTexts("en");
-  }, []);
-
-  const handleLanguageSwitch = async (languageCode) => {
-    if (languageCode !== currentLanguage) {
-      await loadTexts(languageCode, true);
-    }
-  };
-
   const { placeholderText } = useRotatingPlaceholder(state, dispatch);
-  useLoadDemos(state, dispatch);
-  useDetectionSound(state, dispatch);
   useDetectionReset(state, dispatch);
+  useDetectionSound(state, dispatch);
+  useLanguageLoader(state, dispatch);
+  useLoadDemos(state, dispatch);
 
   const isWatching =
     detectionState == DetectionState.WATCHING ||
@@ -213,7 +176,9 @@ function MainPage() {
       onPromptChange={(newPrompt) =>
         dispatch({ type: Events.onPromptChange, payload: newPrompt })
       }
-      onLanguageSwitch={handleLanguageSwitch}
+      onLanguageSwitch={(languageCode) =>
+        dispatch({ type: Events.onLanguageChange, payload: languageCode })
+      }
     />
   );
 }
@@ -269,21 +234,20 @@ function appReducer(draft, action) {
       break;
 
     case Events.onLanguageLoadStart:
-      if (action.payload.showLoading) {
-        draft.isLoadingTranslation = true;
-      }
+      draft.isLoadingTranslation = true;
       break;
 
     case Events.onLanguageLoadSuccess:
       draft.texts = action.payload.texts;
-      draft.currentLanguage = action.payload.languageCode;
       draft.isLoadingTranslation = false;
       break;
 
     case Events.onLanguageLoadError:
-      if (action.payload.showLoading) {
-        draft.isLoadingTranslation = false;
-      }
+      draft.isLoadingTranslation = false;
+      break;
+
+    case Events.onLanguageChange:
+      draft.currentLanguage = action.payload;
       break;
 
     case Events.onDemoStart:
@@ -402,6 +366,36 @@ function useDetectionReset(state, dispatch) {
       return () => clearTimeout(timer);
     }
   }, [detectionState]);
+}
+
+function useLanguageLoader(state, dispatch) {
+  const { currentLanguage } = state;
+
+  useEffect(() => {
+    const loadTexts = async () => {
+      try {
+        dispatch({ type: Events.onLanguageLoadStart });
+
+        const response = await fetch(`/translations/${currentLanguage}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        dispatch({
+          type: Events.onLanguageLoadSuccess,
+          payload: { texts: data.translations },
+        });
+      } catch (error) {
+        console.error("Error loading translations:", error);
+        dispatch({ type: Events.onLanguageLoadError });
+      }
+    };
+
+    loadTexts();
+  }, [currentLanguage]);
+
+  return {};
 }
 
 function MainUI({
