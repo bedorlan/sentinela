@@ -10,7 +10,8 @@ export const DetectionState = {
   DETECTED: "detected",
 };
 
-const DETECTION_THRESHOLD = 90;
+const CONFIDENCE_THRESHOLD = 90;
+const CONSECUTIVE_DETECTIONS_REQUIRED = 2;
 
 export const Events = Object.fromEntries(
   [
@@ -36,6 +37,7 @@ export const Events = Object.fromEntries(
 
 export const initialState = {
   confidence: 0,
+  consecutiveDetections: 0,
   currentDemo: null,
   currentLanguage: "en",
   demoMode: false,
@@ -78,6 +80,8 @@ export function appReducer(draft, action) {
       draft.currentDemo = action.payload.demo;
       draft.prompt = action.payload.demo.prompt;
       draft.detectionState = DetectionState.WATCHING;
+      draft.confidence = 0;
+      draft.consecutiveDetections = 0;
       draft.reason = "";
       break;
 
@@ -88,16 +92,21 @@ export function appReducer(draft, action) {
     case Events.onDetectionReset:
       if (draft.detectionState === DetectionState.DETECTED) {
         draft.detectionState = DetectionState.WATCHING;
+        draft.consecutiveDetections = 0;
       }
       break;
 
     case Events.onDetectionUpdate:
-      if (draft.detectionState === DetectionState.WATCHING) {
-        draft.confidence = action.payload.confidence;
-        draft.reason = action.payload.reason;
-        if (action.payload.confidence >= DETECTION_THRESHOLD) {
-          draft.detectionState = DetectionState.DETECTED;
-        }
+      if (draft.detectionState !== DetectionState.WATCHING) break;
+      draft.confidence = action.payload.confidence;
+      draft.reason = action.payload.reason;
+      if (action.payload.confidence < CONFIDENCE_THRESHOLD) {
+        draft.consecutiveDetections = 0;
+        break;
+      }
+      draft.consecutiveDetections++;
+      if (draft.consecutiveDetections >= CONSECUTIVE_DETECTIONS_REQUIRED) {
+        draft.detectionState = DetectionState.DETECTED;
       }
       break;
 
@@ -149,7 +158,9 @@ export function appReducer(draft, action) {
     case Events.onWatchingStart:
       draft.detectionState = DetectionState.WATCHING;
       draft.confidence = 0;
+      draft.consecutiveDetections = 0;
       draft.reason = "";
+      draft.lastVideoFrame = null;
       break;
 
     case Events.onWatchingStop:
@@ -283,7 +294,7 @@ export function useVideoDetection(state, dispatch) {
   useEffect(
     function watchForWebSocketMessages() {
       const processMessage = async () => {
-        if (!lastMessage || !isWatching) return;
+        if (!lastMessage) return;
 
         try {
           const arrayBuffer = await lastMessage.data.arrayBuffer();
@@ -305,7 +316,7 @@ export function useVideoDetection(state, dispatch) {
 
       processMessage();
     },
-    [isWatching, lastMessage],
+    [lastMessage],
   );
 
   useEffect(

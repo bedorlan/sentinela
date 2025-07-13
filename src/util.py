@@ -9,13 +9,13 @@ def create_analysis_prompt(prompt: str) -> str:
     """
     analysis_prompt = f"""
     You are a sentinel watching for: {prompt}.
-    Rate how well the frames match what you are watching.
+    Rate how well the images match what you are watching.
 
     Respond ONLY in this format: |rate|reason|
     - rate: 0-100 (0=no match, 100=perfect match)
     - reason: one concise sentence explaining the rate
 
-    Example: |0|There is no cat visible|
+    Example: |50|Not sure if there is a cat|
     """
     return re.sub(r'\n\s+', '\n', analysis_prompt)
 
