@@ -17,6 +17,7 @@ const DETECTION_THRESHOLD = 90;
 
 const Events = Object.fromEntries(
   [
+    "onDemoModeSwitch",
     "onDemosLoad",
     "onDemoStart",
     "onDetectionReset",
@@ -26,7 +27,6 @@ const Events = Object.fromEntries(
     "onLanguageLoadError",
     "onLanguageLoadStart",
     "onLanguageLoadSuccess",
-    "onModeSwitch",
     "onNotificationToggle",
     "onPlaceholderRotate",
     "onPromptChange",
@@ -236,7 +236,7 @@ function MainPage() {
       }
       onModeToggle={() => {
         dispatch({
-          type: Events.onModeSwitch,
+          type: Events.onDemoModeSwitch,
           payload: { demoMode: !demoMode, wasWatching: isWatching },
         });
       }}
@@ -339,7 +339,7 @@ function appReducer(draft, action) {
       draft.reason = "";
       break;
 
-    case Events.onModeSwitch:
+    case Events.onDemoModeSwitch:
       draft.demoMode = action.payload.demoMode;
       draft.currentDemo = null;
       draft.prompt = "";
