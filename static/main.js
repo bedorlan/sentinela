@@ -216,7 +216,7 @@ function MainPage() {
         }))
       }
       onStartWatching={() => {
-        setDetectionState(DetectionState.WATCHING  );
+        setDetectionState(DetectionState.WATCHING);
         setReason("");
         console.log(`Starting to watch for: ${prompt}`);
         console.log(`FPS: ${fps}`);
@@ -513,46 +513,19 @@ function MainUI({
 
           {/* Fun Examples */}
           <div className="mt-8 text-center">
-            {demoMode ? (
-              <>
-                <p className="text-lg mb-4 text-blue-200">
-                  Try these magical demo examples:
-                </p>
-                <div className="flex flex-wrap justify-center gap-3">
-                  {demos.map((demo) => (
-                    <button
-                      key={demo.demo_name}
-                      onClick={() => onDemoSelect(demo)}
-                      className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 transition-all hover:scale-105"
-                      disabled={isWatching}
-                    >
-                      {demo.demo_name}
-                    </button>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <>
-                <p className="text-lg mb-4 text-blue-200">{texts.try_examples}</p>
-                <div className="flex flex-wrap justify-center gap-3">
-                  {[
-                    texts.example_dog,
-                    texts.example_dance,
-                    texts.example_coffee,
-                    texts.example_bird,
-                  ].map((example) => (
-                    <button
-                      key={example}
-                      onClick={() => onPromptChange(`${texts.alert_me} ${example}`)}
-                      className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 transition-all hover:scale-105"
-                      disabled={isWatching}
-                    >
-                      {example}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
+            <p className="text-lg mb-4 text-blue-200">{texts.try_examples}</p>
+            <div className="flex flex-wrap justify-center gap-3">
+              {demos.map((demo) => (
+                <button
+                  key={demo.demo_name}
+                  onClick={() => onDemoSelect(demo)}
+                  className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 transition-all hover:scale-105"
+                  disabled={isWatching}
+                >
+                  {demo.demo_name}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
