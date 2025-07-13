@@ -14,7 +14,6 @@ const DetectionState = {
 
 const DETECTION_THRESHOLD = 90;
 
-
 function MainPage() {
   const [texts, setTexts] = useState({});
   const [prompt, setPrompt] = useState("");
@@ -29,15 +28,15 @@ function MainPage() {
     sms: false,
     webhook: false,
   });
-  const [currentLanguage, setCurrentLanguage] = useState('en');
+  const [currentLanguage, setCurrentLanguage] = useState("en");
   const [isLoadingTranslation, setIsLoadingTranslation] = useState(false);
 
-  const loadTexts = async (languageCode = 'en', showLoading = false) => {
+  const loadTexts = async (languageCode = "en", showLoading = false) => {
     try {
       if (showLoading) {
         setIsLoadingTranslation(true);
       }
-      
+
       const response = await fetch(`/translations/${languageCode}`);
       if (response.ok) {
         const data = await response.json();
@@ -53,7 +52,7 @@ function MainPage() {
   };
 
   useEffect(() => {
-    loadTexts('en');
+    loadTexts("en");
   }, []);
 
   const placeholders = [
@@ -62,7 +61,7 @@ function MainPage() {
     texts.placeholder_notify_sunset,
     texts.placeholder_watch_pizza,
     texts.placeholder_let_know_baby,
-    texts.placeholder_warn_sad
+    texts.placeholder_warn_sad,
   ];
 
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
@@ -116,7 +115,6 @@ function MainPage() {
       handleWebSocketMessage(lastMessage);
     }
   }, [lastMessage]);
-
 
   const handleLanguageSwitch = async (languageCode) => {
     if (languageCode !== currentLanguage) {
@@ -186,7 +184,7 @@ function MainPage() {
         }))
       }
       onStartWatching={() => {
-        setDetectionState(DetectionState.WATCHING);
+        setDetectionState(DetectionState.WATCHING  );
         setReason("");
         console.log(`Starting to watch for: ${prompt}`);
         console.log(`FPS: ${fps}`);
@@ -254,14 +252,14 @@ function MainUI({
               <span className="inline-block">👁️</span> Sentinela
             </h1>
           </div>
-          
+
           <div className="max-w-4xl mx-auto relative">
             <p className="text-2xl text-blue-200 text-center">
               {texts.tagline}
             </p>
-            
+
             <div className="absolute right-0 top-1/2 transform -translate-y-1/2">
-              <LanguageSwitcher 
+              <LanguageSwitcher
                 currentLanguage={currentLanguage}
                 onLanguageSwitch={onLanguageSwitch}
               />
@@ -269,9 +267,10 @@ function MainUI({
           </div>
         </div>
 
-
-        <TranslationLoadingModal isLoading={isLoadingTranslation} texts={texts} />
-
+        <TranslationLoadingModal
+          isLoading={isLoadingTranslation}
+          texts={texts}
+        />
 
         {/* Main Content */}
         <div className="max-w-4xl mx-auto">
@@ -426,7 +425,11 @@ function MainUI({
                   { icon: "🔊", label: texts.notification_sound, key: "sound" },
                   { icon: "📧", label: texts.notification_email, key: "email" },
                   { icon: "💬", label: texts.notification_sms, key: "sms" },
-                  { icon: "🔗", label: texts.notification_webhook, key: "webhook" },
+                  {
+                    icon: "🔗",
+                    label: texts.notification_webhook,
+                    key: "webhook",
+                  },
                 ].map((option) => (
                   <button
                     key={option.label}
@@ -461,9 +464,7 @@ function MainUI({
 
           {/* Fun Examples */}
           <div className="mt-8 text-center">
-            <p className="text-lg mb-4 text-blue-200">
-              {texts.try_examples}
-            </p>
+            <p className="text-lg mb-4 text-blue-200">{texts.try_examples}</p>
             <div className="flex flex-wrap justify-center gap-3">
               {[
                 texts.example_dog,
@@ -518,40 +519,42 @@ function MainUI({
 }
 function LanguageSwitcher({ currentLanguage, onLanguageSwitch }) {
   const browserLanguage = navigator.language;
-  const languageCode = browserLanguage.split('-')[0];
-  
-  if (languageCode === 'en' && currentLanguage === 'en') {
+  const languageCode = browserLanguage.split("-")[0];
+
+  if (languageCode === "en" && currentLanguage === "en") {
     return null;
   }
-  
-  const isEnglishActive = currentLanguage === 'en';
-  const targetLanguage = isEnglishActive ? languageCode : 'en';
-  const languageName = isEnglishActive 
-    ? new Intl.DisplayNames(['en'], {type: 'language'}).of(languageCode)
-    : 'English';
-  
-  const buttonConfig = isEnglishActive ? {
-    gradient: 'from-blue-500/20 to-purple-500/20',
-    hoverGradient: 'from-blue-500/40 to-purple-500/40',
-    borderColor: 'border-blue-400/30',
-    shadowColor: 'shadow-blue-400/30',
-    icon: '💬',
-    iconPing: '✨',
-    textColor: 'text-blue-200',
-    iconColor: 'text-blue-300',
-    shortLabel: languageCode.toUpperCase()
-  } : {
-    gradient: 'from-green-500/20 to-emerald-500/20',
-    hoverGradient: 'from-green-500/40 to-emerald-500/40',
-    borderColor: 'border-green-400/30',
-    shadowColor: 'shadow-green-400/30',
-    icon: '✨',
-    iconPing: '🔄',
-    textColor: 'text-green-200',
-    iconColor: 'text-green-300',
-    shortLabel: 'EN'
-  };
-  
+
+  const isEnglishActive = currentLanguage === "en";
+  const targetLanguage = isEnglishActive ? languageCode : "en";
+  const languageName = isEnglishActive
+    ? new Intl.DisplayNames(["en"], { type: "language" }).of(languageCode)
+    : "English";
+
+  const buttonConfig = isEnglishActive
+    ? {
+        gradient: "from-blue-500/20 to-purple-500/20",
+        hoverGradient: "from-blue-500/40 to-purple-500/40",
+        borderColor: "border-blue-400/30",
+        shadowColor: "shadow-blue-400/30",
+        icon: "💬",
+        iconPing: "✨",
+        textColor: "text-blue-200",
+        iconColor: "text-blue-300",
+        shortLabel: languageCode.toUpperCase(),
+      }
+    : {
+        gradient: "from-green-500/20 to-emerald-500/20",
+        hoverGradient: "from-green-500/40 to-emerald-500/40",
+        borderColor: "border-green-400/30",
+        shadowColor: "shadow-green-400/30",
+        icon: "✨",
+        iconPing: "🔄",
+        textColor: "text-green-200",
+        iconColor: "text-green-300",
+        shortLabel: "EN",
+      };
+
   return (
     <button
       onClick={() => onLanguageSwitch(targetLanguage)}
@@ -566,25 +569,29 @@ function LanguageSwitcher({ currentLanguage, onLanguageSwitch }) {
             {buttonConfig.iconPing}
           </span>
         </div>
-        
+
         <div className="text-left hidden sm:block">
-          <div className={`text-xs ${buttonConfig.textColor} group-hover:text-yellow-200 transition-colors`}>
+          <div
+            className={`text-xs ${buttonConfig.textColor} group-hover:text-yellow-200 transition-colors`}
+          >
             Switch to
           </div>
           <div className="text-sm font-semibold text-white group-hover:text-yellow-300 transition-colors">
             {languageName}
           </div>
         </div>
-        
+
         <span className="text-sm font-medium text-white group-hover:text-yellow-200 transition-colors sm:hidden">
           {buttonConfig.shortLabel}
         </span>
-        
-        <span className={`text-xs ${buttonConfig.iconColor} group-hover:text-yellow-400 transition-colors group-hover:animate-bounce`}>
+
+        <span
+          className={`text-xs ${buttonConfig.iconColor} group-hover:text-yellow-400 transition-colors group-hover:animate-bounce`}
+        >
           →
         </span>
       </div>
-      
+
       <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-yellow-400/0 to-orange-400/0 group-hover:from-yellow-400/20 group-hover:to-orange-400/20 transition-all duration-300 blur-sm"></div>
     </button>
   );
@@ -605,7 +612,7 @@ function TranslationLoadingModal({ isLoading, texts }) {
               🌟
             </div>
           </div>
-          
+
           {[...Array(6)].map((_, i) => (
             <div
               key={i}
@@ -625,11 +632,11 @@ function TranslationLoadingModal({ isLoading, texts }) {
         <h3 className="text-3xl font-bold mb-4 text-yellow-400 animate-pulse">
           {texts.loading_translation}
         </h3>
-        
+
         <p className="text-lg text-blue-200 mb-6">
           {texts.loading_please_wait}
         </p>
-        
+
         <div className="flex justify-center space-x-2">
           {[...Array(3)].map((_, i) => (
             <div
@@ -637,7 +644,7 @@ function TranslationLoadingModal({ isLoading, texts }) {
               className="w-3 h-3 bg-yellow-400 rounded-full animate-bounce"
               style={{
                 animationDelay: `${i * 0.2}s`,
-                animationDuration: '1s'
+                animationDuration: "1s",
               }}
             />
           ))}
