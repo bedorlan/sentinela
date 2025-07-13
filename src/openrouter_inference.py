@@ -14,9 +14,9 @@ class OpenRouterInference(InferenceEngine):
     def __init__(self):
         self.api_key = os.getenv("OPENROUTER_API_KEY")
         self.client = None
-        # self.model_name = 'google/gemma-3n-e4b-it' # this one supports images
+        self.model_name = 'google/gemma-3n-e4b-it' # this one supports images
         # self.model_name = 'google/gemma-3n-e4b-it:free'
-        self.model_name = 'google/gemma-3-27b-it:free'
+        # self.model_name = 'google/gemma-3-27b-it:free'
         self._translation_cache = {}
         self._initialize_client()
         
