@@ -3,6 +3,8 @@ from typing import Tuple, Optional, Dict
 import base64
 import os
 import json
+import hashlib
+from functools import lru_cache
 
 from . import util
 from .inference_engine import InferenceEngine
@@ -15,7 +17,13 @@ class OpenRouterInference(InferenceEngine):
         # self.model_name = 'google/gemma-3n-e4b-it' # this one supports images
         # self.model_name = 'google/gemma-3n-e4b-it:free'
         self.model_name = 'google/gemma-3-27b-it:free'
+        self._translation_cache = {}
         self._initialize_client()
+        
+    def _get_cache_key(self, texts: list, language: str) -> str:
+        texts_str = "|".join(texts)
+        content = f"{texts_str}_{language}"
+        return hashlib.md5(content.encode()).hexdigest()
     
     def _initialize_client(self):
         if self.api_key:
@@ -99,8 +107,12 @@ class OpenRouterInference(InferenceEngine):
         Returns:
             List of translated texts in the same order
         """
+        cache_key = self._get_cache_key(texts, locale)
+        
+        if cache_key in self._translation_cache:
+            return self._translation_cache[cache_key]
+        
         try:
-            # Create the translation prompt
             prompt = f"""You are a professional translator. Translate the following texts to {locale} language.
             
             IMPORTANT RULES:
@@ -119,7 +131,6 @@ class OpenRouterInference(InferenceEngine):
                 "role": "user",
                 "content": prompt
             }]
-            print(prompt)
             
             response_text = await self._run_ai_inference(messages)
             
@@ -137,7 +148,8 @@ class OpenRouterInference(InferenceEngine):
                 if len(translated_texts) != len(texts):
                     print(f"Translation count mismatch: expected {len(texts)}, got {len(translated_texts)}")
                     return texts
-                        
+                
+                self._translation_cache[cache_key] = translated_texts
                 return translated_texts
                 
             except Exception as e:
