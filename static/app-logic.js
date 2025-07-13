@@ -10,7 +10,7 @@ export const DetectionState = {
   DETECTED: "detected",
 };
 
-export const DETECTION_THRESHOLD = 90;
+const DETECTION_THRESHOLD = 90;
 
 export const Events = Object.fromEntries(
   [

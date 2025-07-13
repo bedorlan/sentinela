@@ -3,7 +3,6 @@ import { useImmerReducer } from "use-immer";
 import React, { useEffect, useCallback } from "react";
 import {
   appReducer,
-  DETECTION_THRESHOLD,
   DetectionState,
   Events,
   initialState,
@@ -256,17 +255,17 @@ function MainUI({
             <div className="flex justify-center mb-2 animate-fadeIn">
               <div
                 className={`backdrop-blur-lg rounded-full px-6 py-3 flex items-center space-x-3 max-w-2xl shadow-lg ${
-                  confidence >= DETECTION_THRESHOLD
+                  detectionState === DetectionState.DETECTED
                     ? "bg-gradient-to-r from-yellow-400/20 to-green-400/20 border border-yellow-400/30"
                     : "bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-blue-400/30"
                 }`}
               >
                 <span className="text-lg">
-                  {confidence >= DETECTION_THRESHOLD ? "⭐" : "🔍"}
+                  {detectionState === DetectionState.DETECTED ? "⭐" : "🔍"}
                 </span>
                 <p
                   className={`text-sm italic font-light ${
-                    confidence >= DETECTION_THRESHOLD
+                    detectionState === DetectionState.DETECTED
                       ? "text-yellow-200"
                       : "text-blue-200"
                   }`}
