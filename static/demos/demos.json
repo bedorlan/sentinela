@@ -4,5 +4,11 @@
     "file": "dog.mp4",
     "prompt": "white dog on bed, not on floor",
     "credits": "https://www.youtube.com/watch?v=8JFaTq3eUpc"
+  },
+  {
+    "demo_name": "🕺 I'm not gonna fall",
+    "file": "falling.mp4",
+    "prompt": "person lying face up in the snow",
+    "credits": "https://www.youtube.com/shorts/9wXLhLMVWwU"
   }
 ]
