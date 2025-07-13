@@ -78,19 +78,20 @@ async def get_translations(language: str, username: str = Depends(authenticate))
     try:
         with open("static/locales/translation_keys.json", "r", encoding="utf-8") as f:
             base_texts = json.load(f)
-    
+
         if language.lower().startswith('en'):
-            print(f"📖 English texts loaded directly from file")
-            print(f"📄 Base texts: {base_texts}")
+
             return {"translations": base_texts}
         
         if not hasattr(inference_engine, 'translate'):
             raise HTTPException(status_code=501, detail="Translation not supported")
         
-        translated_texts = await inference_engine.translate(base_texts, language)
+        keys = list(base_texts.keys())
+        values = list(base_texts.values())
         
-        print(f"✅ Translation completed for language: {language}")
-        print(f"📄 Final translated texts: {translated_texts}")
+        translated_values = await inference_engine.translate(values, language)
+        
+        translated_texts = dict(zip(keys, translated_values))
         
         return {"translations": translated_texts}
         

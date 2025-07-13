@@ -12,9 +12,9 @@ class OpenRouterInference(InferenceEngine):
     def __init__(self):
         self.api_key = os.getenv("OPENROUTER_API_KEY")
         self.client = None
-        self.model_name = 'google/gemma-3n-e4b-it' # this one supports images
+        # self.model_name = 'google/gemma-3n-e4b-it' # this one supports images
         # self.model_name = 'google/gemma-3n-e4b-it:free'
-        # self.model_name = 'google/gemma-3-27b-it:free'
+        self.model_name = 'google/gemma-3-27b-it:free'
         self._initialize_client()
     
     def _initialize_client(self):
@@ -88,32 +88,32 @@ class OpenRouterInference(InferenceEngine):
             print(f"AI inference error: {str(e)}")
             return ""
     
-    async def translate(self, texts: Dict[str, str], locale: str) -> Dict[str, str]:
+    async def translate(self, texts: list, locale: str) -> list:
         """
-        Translate a dictionary of texts to the specified locale.
+        Translate a list of texts to the specified locale.
         
         Args:
-            texts: Dictionary with keys and text values to translate
+            texts: List of text strings to translate
             locale: Target language locale (e.g., 'es', 'fr', 'pt', 'de')
             
         Returns:
-            Dictionary with same keys but translated values
+            List of translated texts in the same order
         """
         try:
             # Create the translation prompt
             prompt = f"""You are a professional translator. Translate the following texts to {locale} language.
             
             IMPORTANT RULES:
-            1. Only translate the values, not the keys
-            2. Preserve all emojis exactly as they are
-            3. Maintain the same tone and style as the original
-            4. Return ONLY a valid JSON object with the same structure
+            1. Preserve all emojis exactly as they are
+            2. Maintain the same tone and style as the original
+            3. Return ONLY a valid JSON array with the translated texts
+            4. Keep the same order as the input
             5. Do not add any explanations or additional text
             
-            Input JSON:
+            Input texts:
             {json.dumps(texts, ensure_ascii=False, indent=2)}
             
-            Return the translated JSON:"""
+            Return the translated texts as JSON array:"""
 
             messages = [{
                 "role": "user",
@@ -134,9 +134,9 @@ class OpenRouterInference(InferenceEngine):
                 
                 translated_texts = json.loads(cleaned_response.strip())
                 
-                for key in texts.keys():
-                    if key not in translated_texts:
-                        translated_texts[key] = texts[key]
+                if not isinstance(translated_texts, list) or len(translated_texts) != len(texts):
+                    print(f"Invalid translation response format or length mismatch")
+                    return texts
                         
                 return translated_texts
                 
