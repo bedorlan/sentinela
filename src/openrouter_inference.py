@@ -100,7 +100,7 @@ class OpenRouterInference(InferenceEngine):
         Returns:
             List of translated texts in the same order
         """
-        cache_key = f"{locale}:{':'.join(texts)}"
+        cache_key = locale
         
         if cache_key in self._translation_cache:
             return self._translation_cache[cache_key]
