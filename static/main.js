@@ -14,16 +14,8 @@ const DetectionState = {
 
 const DETECTION_THRESHOLD = 90;
 
-const placeholders = [
-  "Tell me when my cat enters the room... 🐱",
-  "Alert me when someone smiles... 😊",
-  "Notify me when the sun sets... 🌅",
-  "Watch for when my pizza arrives... 🍕",
-  "Let me know when the baby wakes up... 👶",
-  "Warn me if someone looks sad... 😢",
-];
-
 function MainPage() {
+  const [texts, setTexts] = useState({});
   const [prompt, setPrompt] = useState("");
   const [detectionState, setDetectionState] = useState(DetectionState.IDLE);
   const [confidence, setConfidence] = useState(0);
@@ -36,6 +28,41 @@ function MainPage() {
     sms: false,
     webhook: false,
   });
+  const [currentLanguage, setCurrentLanguage] = useState("en");
+  const [isLoadingTranslation, setIsLoadingTranslation] = useState(false);
+
+  const loadTexts = async (languageCode = "en", showLoading = false) => {
+    try {
+      if (showLoading) {
+        setIsLoadingTranslation(true);
+      }
+
+      const response = await fetch(`/translations/${languageCode}`);
+      if (response.ok) {
+        const data = await response.json();
+        setTexts(data.translations);
+        setCurrentLanguage(languageCode);
+      }
+    } catch (error) {
+    } finally {
+      if (showLoading) {
+        setIsLoadingTranslation(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    loadTexts("en");
+  }, []);
+
+  const placeholders = [
+    texts.placeholder_tell_me_cat,
+    texts.placeholder_alert_smile,
+    texts.placeholder_notify_sunset,
+    texts.placeholder_watch_pizza,
+    texts.placeholder_let_know_baby,
+    texts.placeholder_warn_sad,
+  ];
 
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   useEffect(function rotatingPlaceholder() {
@@ -89,6 +116,12 @@ function MainPage() {
     }
   }, [lastMessage]);
 
+  const handleLanguageSwitch = async (languageCode) => {
+    if (languageCode !== currentLanguage) {
+      await loadTexts(languageCode, true);
+    }
+  };
+
   const handleWebSocketMessage = async (message) => {
     if (detectionState != DetectionState.WATCHING) return;
 
@@ -137,6 +170,9 @@ function MainPage() {
       placeholderText={placeholders[placeholderIndex]}
       prompt={prompt}
       reason={reason}
+      texts={texts}
+      isLoadingTranslation={isLoadingTranslation}
+      currentLanguage={currentLanguage}
       //
       onFpsChange={(newFps) => setFps(newFps)}
       onHandleFrame={handleFrame}
@@ -148,7 +184,7 @@ function MainPage() {
         }))
       }
       onStartWatching={() => {
-        setDetectionState(DetectionState.WATCHING);
+        setDetectionState(DetectionState.WATCHING  );
         setReason("");
         console.log(`Starting to watch for: ${prompt}`);
         console.log(`FPS: ${fps}`);
@@ -160,6 +196,7 @@ function MainPage() {
         console.log("Stopped watching");
       }}
       onPromptChange={(newPrompt) => setPrompt(newPrompt)}
+      onLanguageSwitch={handleLanguageSwitch}
     />
   );
 }
@@ -175,7 +212,9 @@ function MainUI({
   placeholderText,
   prompt,
   reason,
-  //
+  texts,
+  isLoadingTranslation,
+  currentLanguage,
   onFpsChange,
   onHandleFrame,
   onImageQualityChange,
@@ -183,6 +222,7 @@ function MainUI({
   onPromptChange,
   onStartWatching,
   onStopWatching,
+  onLanguageSwitch,
 }) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 text-white overflow-hidden relative">
@@ -207,13 +247,30 @@ function MainUI({
       <div className="relative z-10 container mx-auto px-4 py-12">
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-6xl font-bold mb-4 animate-bounce">
-            <span className="inline-block">👁️</span> Sentinela
-          </h1>
-          <p className="text-2xl text-blue-200">
-            Tell me what to watch for in plain words!
-          </p>
+          <div className="mb-4">
+            <h1 className="text-6xl font-bold animate-bounce">
+              <span className="inline-block">👁️</span> Sentinela
+            </h1>
+          </div>
+
+          <div className="max-w-4xl mx-auto relative">
+            <p className="text-2xl text-blue-200 text-center">
+              {texts.tagline}
+            </p>
+
+            <div className="absolute right-0 top-1/2 transform -translate-y-1/2">
+              <LanguageSwitcher
+                currentLanguage={currentLanguage}
+                onLanguageSwitch={onLanguageSwitch}
+              />
+            </div>
+          </div>
         </div>
+
+        <TranslationLoadingModal
+          isLoading={isLoadingTranslation}
+          texts={texts}
+        />
 
         {/* Main Content */}
         <div className="max-w-4xl mx-auto">
@@ -243,7 +300,7 @@ function MainUI({
                       <div className="text-center animate-zoomIn">
                         <p className="text-8xl mb-4">🎉</p>
                         <p className="text-3xl font-bold text-yellow-400">
-                          DETECTED!
+                          {texts.detected}
                         </p>
                       </div>
                     </div>
@@ -260,7 +317,7 @@ function MainUI({
                           />
                         </div>
                         <p className="text-center mt-1 text-sm">
-                          Confidence: {Math.round(confidence)}%
+                          {texts.confidence} {Math.round(confidence)}%
                         </p>
                       </div>
                     </div>
@@ -300,7 +357,7 @@ function MainUI({
           <div className="bg-white/10 backdrop-blur rounded-3xl p-8 border border-white/20">
             <div className="mb-6">
               <label className="block text-xl mb-3 font-semibold">
-                ✨ What should I watch for?
+                {texts.what_to_watch}
               </label>
               <input
                 type="text"
@@ -320,7 +377,7 @@ function MainUI({
             {/* FPS Control */}
             <div className="mb-6">
               <label className="block text-xl mb-3 font-semibold">
-                ⚡ Frames per second
+                {texts.fps_label}
               </label>
               <input
                 type="number"
@@ -337,7 +394,7 @@ function MainUI({
             {/* Image Quality Control */}
             <div className="mb-6">
               <label className="block text-xl mb-3 font-semibold">
-                📷 Image quality: {Math.round(imageQuality * 100)}%
+                {texts.image_quality_label} {Math.round(imageQuality * 100)}%
               </label>
               <input
                 type="range"
@@ -352,23 +409,27 @@ function MainUI({
                 disabled={isWatching}
               />
               <div className="flex justify-between text-sm mt-2 text-gray-300">
-                <span>Low (10%)</span>
-                <span>Medium (50%)</span>
-                <span>High (100%)</span>
+                <span>{texts.low_quality}</span>
+                <span>{texts.medium_quality}</span>
+                <span>{texts.high_quality}</span>
               </div>
             </div>
 
             {/* Notification Type */}
             <div className="mb-6">
               <label className="block text-xl mb-3 font-semibold">
-                🔔 How should I notify you?
+                {texts.notifications_label}
               </label>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {[
-                  { icon: "🔊", label: "Sound", key: "sound" },
-                  { icon: "📧", label: "Email", key: "email" },
-                  { icon: "💬", label: "SMS", key: "sms" },
-                  { icon: "🔗", label: "Webhook", key: "webhook" },
+                  { icon: "🔊", label: texts.notification_sound, key: "sound" },
+                  { icon: "📧", label: texts.notification_email, key: "email" },
+                  { icon: "💬", label: texts.notification_sms, key: "sms" },
+                  {
+                    icon: "🔗",
+                    label: texts.notification_webhook,
+                    key: "webhook",
+                  },
                 ].map((option) => (
                   <button
                     key={option.label}
@@ -397,25 +458,23 @@ function MainUI({
                   : "bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 animate-pulse"
               }`}
             >
-              {isWatching ? "🛑 Stop Watching" : "🚀 Start Watching!"}
+              {isWatching ? texts.stop_watching : texts.start_watching}
             </button>
           </div>
 
           {/* Fun Examples */}
           <div className="mt-8 text-center">
-            <p className="text-lg mb-4 text-blue-200">
-              Try these magical examples:
-            </p>
+            <p className="text-lg mb-4 text-blue-200">{texts.try_examples}</p>
             <div className="flex flex-wrap justify-center gap-3">
               {[
-                "when my dog sits 🐕",
-                "if someone dances 💃",
-                "when coffee is ready ☕",
-                "if a bird appears 🦅",
+                texts.example_dog,
+                texts.example_dance,
+                texts.example_coffee,
+                texts.example_bird,
               ].map((example) => (
                 <button
                   key={example}
-                  onClick={() => onPromptChange(`Alert me ${example}`)}
+                  onClick={() => onPromptChange(`${texts.alert_me} ${example}`)}
                   className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 transition-all hover:scale-105"
                   disabled={isWatching}
                 >
@@ -455,6 +514,142 @@ function MainUI({
           100% { opacity: 1; }
         }
       `}</style>
+    </div>
+  );
+}
+function LanguageSwitcher({ currentLanguage, onLanguageSwitch }) {
+  const browserLanguage = navigator.language;
+  const languageCode = browserLanguage.split("-")[0];
+
+  if (languageCode === "en" && currentLanguage === "en") {
+    return null;
+  }
+
+  const isEnglishActive = currentLanguage === "en";
+  const targetLanguage = isEnglishActive ? languageCode : "en";
+  const languageName = isEnglishActive
+    ? new Intl.DisplayNames(["en"], { type: "language" }).of(languageCode)
+    : "English";
+
+  const buttonConfig = isEnglishActive
+    ? {
+        gradient: "from-blue-500/20 to-purple-500/20",
+        hoverGradient: "from-blue-500/40 to-purple-500/40",
+        borderColor: "border-blue-400/30",
+        shadowColor: "shadow-blue-400/30",
+        icon: "💬",
+        iconPing: "✨",
+        textColor: "text-blue-200",
+        iconColor: "text-blue-300",
+        shortLabel: languageCode.toUpperCase(),
+      }
+    : {
+        gradient: "from-green-500/20 to-emerald-500/20",
+        hoverGradient: "from-green-500/40 to-emerald-500/40",
+        borderColor: "border-green-400/30",
+        shadowColor: "shadow-green-400/30",
+        icon: "✨",
+        iconPing: "🔄",
+        textColor: "text-green-200",
+        iconColor: "text-green-300",
+        shortLabel: "EN",
+      };
+
+  return (
+    <button
+      onClick={() => onLanguageSwitch(targetLanguage)}
+      className={`group relative bg-gradient-to-r ${buttonConfig.gradient} hover:${buttonConfig.hoverGradient} backdrop-blur-sm rounded-2xl px-5 py-3 border ${buttonConfig.borderColor} hover:border-yellow-400/60 transition-all duration-300 transform hover:scale-105 hover:shadow-lg hover:${buttonConfig.shadowColor} animate-pulse hover:animate-none`}
+    >
+      <div className="flex items-center space-x-3">
+        <div className="relative">
+          <span className="text-xl group-hover:animate-bounce transition-all duration-300">
+            {buttonConfig.icon}
+          </span>
+          <span className="absolute -top-1 -right-1 text-xs animate-ping">
+            {buttonConfig.iconPing}
+          </span>
+        </div>
+
+        <div className="text-left hidden sm:block">
+          <div
+            className={`text-xs ${buttonConfig.textColor} group-hover:text-yellow-200 transition-colors`}
+          >
+            Switch to
+          </div>
+          <div className="text-sm font-semibold text-white group-hover:text-yellow-300 transition-colors">
+            {languageName}
+          </div>
+        </div>
+
+        <span className="text-sm font-medium text-white group-hover:text-yellow-200 transition-colors sm:hidden">
+          {buttonConfig.shortLabel}
+        </span>
+
+        <span
+          className={`text-xs ${buttonConfig.iconColor} group-hover:text-yellow-400 transition-colors group-hover:animate-bounce`}
+        >
+          →
+        </span>
+      </div>
+
+      <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-yellow-400/0 to-orange-400/0 group-hover:from-yellow-400/20 group-hover:to-orange-400/20 transition-all duration-300 blur-sm"></div>
+    </button>
+  );
+}
+
+function TranslationLoadingModal({ isLoading, texts }) {
+  if (!isLoading) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 animate-fadeIn">
+      <div className="bg-gradient-to-br from-purple-800/95 to-blue-800/95 backdrop-blur-lg rounded-3xl p-12 max-w-lg mx-4 border border-white/20 shadow-2xl animate-zoomIn text-center">
+        <div className="relative mb-8">
+          <div className="w-20 h-20 mx-auto relative">
+            <div className="absolute inset-0 rounded-full border-4 border-yellow-400/30"></div>
+            <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-yellow-400 animate-spin"></div>
+            <div className="absolute inset-2 bg-gradient-to-br from-yellow-400/40 to-orange-500/40 rounded-full animate-pulse"></div>
+            <div className="absolute inset-0 flex items-center justify-center text-3xl animate-bounce">
+              🌟
+            </div>
+          </div>
+
+          {[...Array(6)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute text-yellow-400 animate-ping"
+              style={{
+                left: `${20 + Math.random() * 60}%`,
+                top: `${20 + Math.random() * 60}%`,
+                animationDelay: `${Math.random() * 2}s`,
+                animationDuration: `${2 + Math.random() * 2}s`,
+              }}
+            >
+              ✨
+            </div>
+          ))}
+        </div>
+
+        <h3 className="text-3xl font-bold mb-4 text-yellow-400 animate-pulse">
+          {texts.loading_translation}
+        </h3>
+
+        <p className="text-lg text-blue-200 mb-6">
+          {texts.loading_please_wait}
+        </p>
+
+        <div className="flex justify-center space-x-2">
+          {[...Array(3)].map((_, i) => (
+            <div
+              key={i}
+              className="w-3 h-3 bg-yellow-400 rounded-full animate-bounce"
+              style={{
+                animationDelay: `${i * 0.2}s`,
+                animationDuration: "1s",
+              }}
+            />
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

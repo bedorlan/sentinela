@@ -26,5 +26,7 @@
   "example_dance": "if someone dances 💃",
   "example_coffee": "when coffee is ready ☕",
   "example_bird": "if a bird appears 🦅",
-  "alert_me": "Alert me"
+  "alert_me": "Alert me",
+  "loading_translation": "Translating to your language...",
+  "loading_please_wait": "Please wait while we prepare everything for you"
 }
