@@ -1,6 +1,7 @@
 import { createRoot } from "react-dom";
+import { useImmerReducer } from "use-immer";
 import * as MessagePack from "@msgpack/msgpack";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useEffect, useCallback } from "react";
 import ruw from "react-use-websocket";
 
 const { default: useWebSocket } = ruw;
@@ -14,43 +15,71 @@ const DetectionState = {
 
 const DETECTION_THRESHOLD = 90;
 
+const Events = Object.fromEntries(
+  [
+    "onDemosLoad",
+    "onDemoStart",
+    "onDetectionReset",
+    "onDetectionUpdate",
+    "onFpsChange",
+    "onImageQualityChange",
+    "onLanguageLoadError",
+    "onLanguageLoadStart",
+    "onLanguageLoadSuccess",
+    "onModeSwitch",
+    "onNotificationToggle",
+    "onPlaceholderRotate",
+    "onPromptChange",
+    "onWatchingStart",
+    "onWatchingStop",
+  ].map((t) => [t, t]),
+);
+
 function MainPage() {
-  const [texts, setTexts] = useState({});
-  const [prompt, setPrompt] = useState("");
-  const [detectionState, setDetectionState] = useState(DetectionState.IDLE);
-  const [confidence, setConfidence] = useState(0);
-  const [reason, setReason] = useState("");
-  const [fps, setFps] = useState(1);
-  const [imageQuality, setImageQuality] = useState(0.9);
-  const [enabledNotifications, setEnabledNotifications] = useState({
-    sound: true,
-    email: false,
-    sms: false,
-    webhook: false,
-  });
-  const [currentLanguage, setCurrentLanguage] = useState("en");
-  const [isLoadingTranslation, setIsLoadingTranslation] = useState(false);
-  const [demos, setDemos] = useState([]);
-  const [demoMode, setDemoMode] = useState(false);
-  const [currentDemo, setCurrentDemo] = useState(null);
+  const [state, dispatch] = useImmerReducer(appReducer, initialState);
+  const {
+    confidence,
+    currentDemo,
+    currentLanguage,
+    demoMode,
+    demos,
+    detectionState,
+    enabledNotifications,
+    fps,
+    imageQuality,
+    isLoadingTranslation,
+    placeholderIndex,
+    prompt,
+    reason,
+    texts,
+  } = state;
 
   const loadTexts = async (languageCode = "en", showLoading = false) => {
     try {
-      if (showLoading) {
-        setIsLoadingTranslation(true);
-      }
+      dispatch({
+        type: Events.onLanguageLoadStart,
+        payload: { showLoading },
+      });
 
       const response = await fetch(`/translations/${languageCode}`);
-      if (response.ok) {
-        const data = await response.json();
-        setTexts(data.translations);
-        setCurrentLanguage(languageCode);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+
+      const data = await response.json();
+      dispatch({
+        type: Events.onLanguageLoadSuccess,
+        payload: {
+          texts: data.translations,
+          languageCode,
+        },
+      });
     } catch (error) {
-    } finally {
-      if (showLoading) {
-        setIsLoadingTranslation(false);
-      }
+      console.error("Error loading translations:", error);
+      dispatch({
+        type: Events.onLanguageLoadError,
+        payload: { showLoading },
+      });
     }
   };
 
@@ -67,18 +96,23 @@ function MainPage() {
     texts.placeholder_warn_sad,
   ];
 
-  const [placeholderIndex, setPlaceholderIndex] = useState(0);
-  useEffect(function rotatingPlaceholder() {
-    const interval = setInterval(() => {
-      setPlaceholderIndex((prev) => (prev + 1) % placeholders.length);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
+  useEffect(
+    function rotatingPlaceholder() {
+      const interval = setInterval(() => {
+        dispatch({
+          type: Events.onPlaceholderRotate,
+          payload: (placeholderIndex + 1) % placeholders.length,
+        });
+      }, 3000);
+      return () => clearInterval(interval);
+    },
+    [placeholderIndex, placeholders.length],
+  );
 
   useEffect(function loadDemos() {
     fetch("/static/demos/demos.json")
       .then((response) => response.json())
-      .then((data) => setDemos(data))
+      .then((data) => dispatch({ type: Events.onDemosLoad, payload: data }))
       .catch((error) => console.error("Error loading demos:", error));
   }, []);
 
@@ -147,12 +181,17 @@ function MainPage() {
       return;
     }
 
-    setConfidence(newConfidence);
-    setReason(newReason);
+    const detected = newConfidence >= DETECTION_THRESHOLD;
+    dispatch({
+      type: Events.onDetectionUpdate,
+      payload: {
+        confidence: newConfidence,
+        reason: newReason,
+        detected,
+      },
+    });
 
-    if (newConfidence < DETECTION_THRESHOLD) return;
-
-    setDetectionState(DetectionState.DETECTED);
+    if (!detected) return;
     if (enabledNotifications.sound && detectionSoundRef.current) {
       detectionSoundRef.current
         .play()
@@ -160,20 +199,12 @@ function MainPage() {
     }
 
     setTimeout(() => {
-      setDetectionState((detectionState) => {
-        return detectionState == DetectionState.DETECTED
-          ? DetectionState.WATCHING
-          : detectionState;
-      });
+      dispatch({ type: Events.onDetectionReset });
     }, 5000);
   };
 
   const handleDemoSelect = (demo) => {
-    setCurrentDemo(demo);
-    setDemoMode(true);
-    setPrompt(demo.prompt);
-    setDetectionState(DetectionState.WATCHING);
-    setReason("");
+    dispatch({ type: Events.onDemoStart, payload: { demo } });
     console.log(`Starting demo: ${demo.demo_name}`);
   };
 
@@ -196,41 +227,153 @@ function MainPage() {
       isLoadingTranslation={isLoadingTranslation}
       currentLanguage={currentLanguage}
       onDemoSelect={handleDemoSelect}
-      onFpsChange={(newFps) => setFps(newFps)}
+      onFpsChange={(newFps) =>
+        dispatch({ type: Events.onFpsChange, payload: newFps })
+      }
       onHandleFrame={handleFrame}
-      onImageQualityChange={(newQuality) => setImageQuality(newQuality)}
+      onImageQualityChange={(newQuality) =>
+        dispatch({ type: Events.onImageQualityChange, payload: newQuality })
+      }
       onModeToggle={() => {
-        setDemoMode(!demoMode);
-        setCurrentDemo(null);
-        setPrompt("");
-        setReason("");
-        if (isWatching) {
-          setDetectionState(DetectionState.IDLE);
-          setConfidence(0);
-        }
+        dispatch({
+          type: Events.onModeSwitch,
+          payload: { demoMode: !demoMode, wasWatching: isWatching },
+        });
       }}
       onNotificationToggle={(notificationKey) =>
-        setEnabledNotifications((prev) => ({
-          ...prev,
-          [notificationKey]: !prev[notificationKey],
-        }))
+        dispatch({
+          type: Events.onNotificationToggle,
+          payload: notificationKey,
+        })
       }
       onStartWatching={() => {
-        setDetectionState(DetectionState.WATCHING);
-        setReason("");
+        dispatch({ type: Events.onWatchingStart });
         console.log(`Starting to watch for: ${prompt}`);
         console.log(`FPS: ${fps}`);
         console.log(`Image Quality: ${imageQuality}`);
       }}
       onStopWatching={() => {
-        setDetectionState(DetectionState.IDLE);
-        setConfidence(0);
+        dispatch({ type: Events.onWatchingStop });
         console.log("Stopped watching");
       }}
-      onPromptChange={(newPrompt) => setPrompt(newPrompt)}
+      onPromptChange={(newPrompt) =>
+        dispatch({ type: Events.onPromptChange, payload: newPrompt })
+      }
       onLanguageSwitch={handleLanguageSwitch}
     />
   );
+}
+
+const initialState = {
+  confidence: 0,
+  currentDemo: null,
+  currentLanguage: "en",
+  demoMode: false,
+  demos: [],
+  detectionState: DetectionState.IDLE,
+  enabledNotifications: {
+    sound: true,
+    email: false,
+    sms: false,
+    webhook: false,
+  },
+  fps: 1,
+  imageQuality: 0.9,
+  isLoadingTranslation: false,
+  placeholderIndex: 0,
+  prompt: "",
+  reason: "",
+  texts: {},
+};
+
+function appReducer(draft, action) {
+  switch (action.type) {
+    case Events.onPromptChange:
+      draft.prompt = action.payload;
+      break;
+
+    case Events.onFpsChange:
+      draft.fps = action.payload;
+      break;
+
+    case Events.onImageQualityChange:
+      draft.imageQuality = action.payload;
+      break;
+
+    case Events.onNotificationToggle:
+      draft.enabledNotifications[action.payload] =
+        !draft.enabledNotifications[action.payload];
+      break;
+
+    case Events.onDemosLoad:
+      draft.demos = action.payload;
+      break;
+
+    case Events.onPlaceholderRotate:
+      draft.placeholderIndex = action.payload;
+      break;
+
+    case Events.onLanguageLoadStart:
+      if (action.payload.showLoading) {
+        draft.isLoadingTranslation = true;
+      }
+      break;
+
+    case Events.onLanguageLoadSuccess:
+      draft.texts = action.payload.texts;
+      draft.currentLanguage = action.payload.languageCode;
+      draft.isLoadingTranslation = false;
+      break;
+
+    case Events.onLanguageLoadError:
+      if (action.payload.showLoading) {
+        draft.isLoadingTranslation = false;
+      }
+      break;
+
+    case Events.onDemoStart:
+      draft.currentDemo = action.payload.demo;
+      draft.demoMode = true;
+      draft.prompt = action.payload.demo.prompt;
+      draft.detectionState = DetectionState.WATCHING;
+      draft.reason = "";
+      break;
+
+    case Events.onModeSwitch:
+      draft.demoMode = action.payload.demoMode;
+      draft.currentDemo = null;
+      draft.prompt = "";
+      draft.reason = "";
+      if (action.payload.wasWatching) {
+        draft.detectionState = DetectionState.IDLE;
+        draft.confidence = 0;
+      }
+      break;
+
+    case Events.onDetectionUpdate:
+      draft.confidence = action.payload.confidence;
+      draft.reason = action.payload.reason;
+      if (action.payload.detected) {
+        draft.detectionState = DetectionState.DETECTED;
+      }
+      break;
+
+    case Events.onWatchingStart:
+      draft.detectionState = DetectionState.WATCHING;
+      draft.reason = "";
+      break;
+
+    case Events.onWatchingStop:
+      draft.detectionState = DetectionState.IDLE;
+      draft.confidence = 0;
+      break;
+
+    case Events.onDetectionReset:
+      if (draft.detectionState === DetectionState.DETECTED) {
+        draft.detectionState = DetectionState.WATCHING;
+      }
+      break;
+  }
 }
 
 function MainUI({
@@ -561,6 +704,7 @@ function MainUI({
     </div>
   );
 }
+
 function LanguageSwitcher({ currentLanguage, onLanguageSwitch }) {
   const browserLanguage = navigator.language;
   const languageCode = browserLanguage.split("-")[0];
