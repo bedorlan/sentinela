@@ -48,7 +48,6 @@ function MainPage() {
     fps,
     imageQuality,
     isLoadingTranslation,
-    placeholderIndex,
     prompt,
     reason,
     texts,
@@ -93,40 +92,10 @@ function MainPage() {
     }
   };
 
-  const placeholders = [
-    texts.placeholder_tell_me_cat,
-    texts.placeholder_alert_smile,
-    texts.placeholder_notify_sunset,
-    texts.placeholder_watch_pizza,
-    texts.placeholder_let_know_baby,
-    texts.placeholder_warn_sad,
-  ];
-
-  useEffect(
-    function rotatingPlaceholder() {
-      const interval = setInterval(() => {
-        dispatch({
-          type: Events.onPlaceholderRotate,
-          payload: (placeholderIndex + 1) % placeholders.length,
-        });
-      }, 3000);
-      return () => clearInterval(interval);
-    },
-    [placeholderIndex, placeholders.length],
-  );
-
-  useEffect(function loadDemos() {
-    fetch("/static/demos/demos.json")
-      .then((response) => response.json())
-      .then((data) => dispatch({ type: Events.onDemosLoad, payload: data }))
-      .catch((error) => console.error("Error loading demos:", error));
-  }, []);
-
-  const detectionSoundRef = React.useRef(null);
-  useEffect(() => {
-    detectionSoundRef.current = new Audio("/static/sound/detected.mp3");
-    detectionSoundRef.current.preload = "auto";
-  }, []);
+  const { placeholderText } = useRotatingPlaceholder(state, dispatch);
+  useLoadDemos(state, dispatch);
+  useDetectionSound(state, dispatch);
+  useDetectionReset(state, dispatch);
 
   const isWatching =
     detectionState == DetectionState.WATCHING ||
@@ -181,31 +150,13 @@ function MainPage() {
       return;
     }
 
-    const detected = newConfidence >= DETECTION_THRESHOLD;
     dispatch({
       type: Events.onDetectionUpdate,
       payload: {
         confidence: newConfidence,
         reason: newReason,
-        detected,
       },
     });
-
-    if (!detected) return;
-    if (enabledNotifications.sound && detectionSoundRef.current) {
-      detectionSoundRef.current
-        .play()
-        .catch((e) => console.error("Failed to play sound:", e));
-    }
-
-    setTimeout(() => {
-      dispatch({ type: Events.onDetectionReset });
-    }, 5000);
-  };
-
-  const handleDemoSelect = (demo) => {
-    dispatch({ type: Events.onDemoStart, payload: { demo } });
-    console.log(`Starting demo: ${demo.demo_name}`);
   };
 
   return (
@@ -220,13 +171,16 @@ function MainPage() {
       imageQuality={imageQuality}
       isRecording={isReadyWatching}
       isWatching={isWatching}
-      placeholderText={placeholders[placeholderIndex]}
+      placeholderText={placeholderText}
       prompt={prompt}
       reason={reason}
       texts={texts}
       isLoadingTranslation={isLoadingTranslation}
       currentLanguage={currentLanguage}
-      onDemoSelect={handleDemoSelect}
+      onDemoSelect={(demo) => {
+        dispatch({ type: Events.onDemoStart, payload: { demo } });
+        console.log(`Starting demo: ${demo.demo_name}`);
+      }}
       onFpsChange={(newFps) =>
         dispatch({ type: Events.onFpsChange, payload: newFps })
       }
@@ -310,7 +264,8 @@ function appReducer(draft, action) {
       break;
 
     case Events.onPlaceholderRotate:
-      draft.placeholderIndex = action.payload;
+      draft.placeholderIndex =
+        (draft.placeholderIndex + 1) % action.payload.placeholdersLength;
       break;
 
     case Events.onLanguageLoadStart:
@@ -353,7 +308,7 @@ function appReducer(draft, action) {
     case Events.onDetectionUpdate:
       draft.confidence = action.payload.confidence;
       draft.reason = action.payload.reason;
-      if (action.payload.detected) {
+      if (action.payload.confidence >= DETECTION_THRESHOLD) {
         draft.detectionState = DetectionState.DETECTED;
       }
       break;
@@ -375,6 +330,78 @@ function appReducer(draft, action) {
       }
       break;
   }
+}
+
+function useRotatingPlaceholder(state, dispatch) {
+  const { placeholderIndex, texts } = state;
+
+  const placeholders = [
+    texts.placeholder_tell_me_cat,
+    texts.placeholder_alert_smile,
+    texts.placeholder_notify_sunset,
+    texts.placeholder_watch_pizza,
+    texts.placeholder_let_know_baby,
+    texts.placeholder_warn_sad,
+  ];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      dispatch({
+        type: Events.onPlaceholderRotate,
+        payload: { placeholdersLength: placeholders.length },
+      });
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [placeholders.length]);
+
+  return { placeholderText: placeholders[placeholderIndex] };
+}
+
+function useLoadDemos(state, dispatch) {
+  useEffect(() => {
+    fetch("/static/demos/demos.json")
+      .then((response) => response.json())
+      .then((data) => dispatch({ type: Events.onDemosLoad, payload: data }))
+      .catch((error) => console.error("Error loading demos:", error));
+  }, []);
+}
+
+function useDetectionSound(state, dispatch) {
+  const detectionSoundRef = React.useRef(null);
+  const { detectionState, enabledNotifications } = state;
+
+  useEffect(() => {
+    detectionSoundRef.current = new Audio("/static/sound/detected.mp3");
+    detectionSoundRef.current.preload = "auto";
+  }, []);
+
+  useEffect(() => {
+    if (
+      detectionState === DetectionState.DETECTED &&
+      enabledNotifications.sound &&
+      detectionSoundRef.current
+    ) {
+      detectionSoundRef.current
+        .play()
+        .catch((e) => console.error("Failed to play sound:", e));
+    }
+  }, [detectionState, enabledNotifications.sound]);
+
+  return { detectionSoundRef };
+}
+
+function useDetectionReset(state, dispatch) {
+  const { detectionState } = state;
+
+  useEffect(() => {
+    if (detectionState === DetectionState.DETECTED) {
+      const timer = setTimeout(() => {
+        dispatch({ type: Events.onDetectionReset });
+      }, 5000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [detectionState]);
 }
 
 function MainUI({
