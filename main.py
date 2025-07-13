@@ -73,7 +73,7 @@ async def health_check():
     return {"status": "healthy"}
 
 @app.get("/translations/{language}")
-async def get_translations(language: str):
+async def get_translations(language: str, username: str = Depends(authenticate)):
     """Get translations for the specified language"""
     try:
         with open("static/locales/translation_keys.json", "r", encoding="utf-8") as f:
