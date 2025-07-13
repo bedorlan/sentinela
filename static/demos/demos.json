@@ -6,6 +6,12 @@
     "credits": "https://www.youtube.com/watch?v=8JFaTq3eUpc"
   },
   {
+    "demo_name": "👴 Elderly safety",
+    "file": "elderly.mp4",
+    "prompt": "person lying on the ground",
+    "credits": "https://www.youtube.com/watch?v=ZSTflpwEPnw"
+  },
+  {
     "demo_name": "🕺 I'm not gonna fall",
     "file": "falling.mp4",
     "prompt": "person lying face up in the snow",
