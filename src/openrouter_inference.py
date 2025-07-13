@@ -3,9 +3,6 @@ from typing import Tuple, Optional, Dict
 import base64
 import os
 import json
-import hashlib
-from functools import lru_cache
-
 from . import util
 from .inference_engine import InferenceEngine
 
@@ -20,10 +17,6 @@ class OpenRouterInference(InferenceEngine):
         self._translation_cache = {}
         self._initialize_client()
         
-    def _get_cache_key(self, texts: list, language: str) -> str:
-        texts_str = "|".join(texts)
-        content = f"{texts_str}_{language}"
-        return hashlib.md5(content.encode()).hexdigest()
     
     def _initialize_client(self):
         if self.api_key:
@@ -107,26 +100,14 @@ class OpenRouterInference(InferenceEngine):
         Returns:
             List of translated texts in the same order
         """
-        cache_key = self._get_cache_key(texts, locale)
+        cache_key = f"{locale}:{':'.join(texts)}"
         
         if cache_key in self._translation_cache:
             return self._translation_cache[cache_key]
         
         try:
-            prompt = f"""You are a professional translator. Translate the following texts to {locale} language.
-            
-            IMPORTANT RULES:
-            1. Preserve all emojis exactly as they are
-            2. Maintain the same tone and style as the original
-            3. Return ONLY the translated texts separated by |
-            4. Keep the same order as the input
-            5. Do not add any explanations or additional text
-            
-            Input texts:
-            {json.dumps(texts, ensure_ascii=False, indent=2)}
-            
-            Return the translated texts separated by |:"""
-
+            texts_str = "|".join(texts)
+            prompt = util.create_translation_prompt(texts_str, locale)
             messages = [{
                 "role": "user",
                 "content": prompt
@@ -134,29 +115,23 @@ class OpenRouterInference(InferenceEngine):
             
             response_text = await self._run_ai_inference(messages)
             
-            try:
-                cleaned_response = response_text.strip()
-                if cleaned_response.startswith("```json"):
-                    cleaned_response = cleaned_response[7:]
-                if cleaned_response.startswith("```"):
-                    cleaned_response = cleaned_response[3:]
-                if cleaned_response.endswith("```"):
-                    cleaned_response = cleaned_response[:-3]
-                
-                translated_texts = [text.strip() for text in cleaned_response.split("|")]
-                
-                if len(translated_texts) != len(texts):
-                    print(f"Translation count mismatch: expected {len(texts)}, got {len(translated_texts)}")
-                    return texts
-                
-                self._translation_cache[cache_key] = translated_texts
-                return translated_texts
-                
-            except Exception as e:
-                print(f"Error parsing translation response: {e}")
-                print(f"Response was: {response_text}")
+            cleaned_response = response_text.strip()
+            if cleaned_response.startswith("```json"):
+                cleaned_response = cleaned_response[7:]
+            if cleaned_response.startswith("```"):
+                cleaned_response = cleaned_response[3:]
+            if cleaned_response.endswith("```"):
+                cleaned_response = cleaned_response[:-3]
+            
+            translated_texts = [text.strip() for text in cleaned_response.split("|")]
+            
+            if len(translated_texts) != len(texts):
+                print(f"Translation count mismatch: expected {len(texts)}, got {len(translated_texts)}")
                 return texts
-                
+            
+            self._translation_cache[cache_key] = translated_texts
+            return translated_texts
+            
         except Exception as e:
             print(f"Translation error: {str(e)}")
             return texts

@@ -46,6 +46,27 @@ def extract_score_and_reason(response: str) -> tuple[int, str]:
         print(f"Error extracting score: {e}")
         return 0, ""
 
+def create_translation_prompt(texts: str, locale: str) -> str:
+    """
+    Create a standardized translation prompt for AI models.
+    """
+    translation_prompt = f"""
+    You are a professional translator. Translate the following texts to {locale} language.
+            
+    IMPORTANT RULES:
+    1. Preserve all emojis exactly as they are
+    2. Maintain the same tone and style as the original
+    3. Return ONLY the translated texts separated by |
+    4. Keep the same order as the input
+    5. Do not add any explanations or additional text
+
+    Input texts:
+    {texts}
+
+    Return the translated texts separated by |:
+    """
+    return re.sub(r'\n\s+', '\n', translation_prompt)
+
 def resize_frame(frame_data: bytes, max_size: int = 768) -> bytes:
     """Resize frame so max width or height is max_size while maintaining aspect ratio"""
     try:
