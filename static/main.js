@@ -6,7 +6,6 @@ import ruw from "react-use-websocket";
 
 const { default: useWebSocket } = ruw;
 
-// Detection state enum
 const DetectionState = {
   IDLE: "idle",
   WATCHING: "watching",
@@ -31,12 +30,13 @@ const Events = Object.fromEntries(
     "onNotificationToggle",
     "onPlaceholderRotate",
     "onPromptChange",
+    "onVideoFrame",
     "onWatchingStart",
     "onWatchingStop",
   ].map((t) => [t, t]),
 );
 
-function MainPage() {
+function App() {
   const [state, dispatch] = useImmerReducer(appReducer, initialState);
   const {
     confidence,
@@ -59,68 +59,11 @@ function MainPage() {
   useDetectionSound(state, dispatch);
   useLanguageLoader(state, dispatch);
   useLoadDemos(state, dispatch);
+  useVideoDetection(state, dispatch);
 
   const isWatching =
     detectionState == DetectionState.WATCHING ||
     detectionState == DetectionState.DETECTED;
-  const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-  const wsUrl = isWatching
-    ? `${wsProtocol}//${window.location.host}/ws/frames`
-    : null;
-
-  const { sendMessage, lastMessage, readyState } = useWebSocket(wsUrl, {
-    shouldReconnect: () => isWatching,
-    reconnectInterval: 3000,
-    reconnectAttempts: 10,
-  });
-
-  const isReadyWatching = isWatching && readyState === WebSocket.OPEN;
-  const handleFrame = useCallback(
-    async (blob) => {
-      if (blob && isReadyWatching) {
-        const arrayBuffer = await blob.arrayBuffer();
-        const uint8Array = new Uint8Array(arrayBuffer);
-
-        const packed = MessagePack.encode({
-          prompt: prompt,
-          frame: uint8Array,
-        });
-
-        sendMessage(packed);
-      }
-    },
-    [isReadyWatching, prompt, sendMessage],
-  );
-
-  useEffect(() => {
-    if (lastMessage) {
-      handleWebSocketMessage(lastMessage);
-    }
-  }, [lastMessage]);
-
-  const handleWebSocketMessage = async (message) => {
-    if (detectionState != DetectionState.WATCHING) return;
-
-    let newConfidence = 0;
-    let newReason = "";
-    try {
-      const arrayBuffer = await message.data.arrayBuffer();
-      const data = MessagePack.decode(new Uint8Array(arrayBuffer));
-      newConfidence = parseFloat(data.confidence);
-      newReason = data.reason;
-    } catch (e) {
-      console.error("Error decoding MessagePack:", e);
-      return;
-    }
-
-    dispatch({
-      type: Events.onDetectionUpdate,
-      payload: {
-        confidence: newConfidence,
-        reason: newReason,
-      },
-    });
-  };
 
   return (
     <MainUI
@@ -132,7 +75,7 @@ function MainPage() {
       enabledNotifications={enabledNotifications}
       fps={fps}
       imageQuality={imageQuality}
-      isRecording={isReadyWatching}
+      isRecording={isWatching}
       isWatching={isWatching}
       placeholderText={placeholderText}
       prompt={prompt}
@@ -147,14 +90,16 @@ function MainPage() {
       onFpsChange={(newFps) =>
         dispatch({ type: Events.onFpsChange, payload: newFps })
       }
-      onHandleFrame={handleFrame}
+      onHandleFrame={(blob) =>
+        dispatch({ type: Events.onVideoFrame, payload: blob })
+      }
       onImageQualityChange={(newQuality) =>
         dispatch({ type: Events.onImageQualityChange, payload: newQuality })
       }
       onModeToggle={() => {
         dispatch({
           type: Events.onDemoModeSwitch,
-          payload: { demoMode: !demoMode, wasWatching: isWatching },
+          payload: { demoMode: !demoMode },
         });
       }}
       onNotificationToggle={(notificationKey) =>
@@ -199,6 +144,7 @@ const initialState = {
   fps: 1,
   imageQuality: 0.9,
   isLoadingTranslation: false,
+  lastVideoFrame: null,
   placeholderIndex: 0,
   prompt: "",
   reason: "",
@@ -247,7 +193,9 @@ function appReducer(draft, action) {
       break;
 
     case Events.onLanguageChange:
-      draft.currentLanguage = action.payload;
+      if (draft.detectionState === DetectionState.IDLE) {
+        draft.currentLanguage = action.payload;
+      }
       break;
 
     case Events.onDemoStart:
@@ -259,22 +207,31 @@ function appReducer(draft, action) {
       break;
 
     case Events.onDemoModeSwitch:
+      const wasWatching =
+        draft.detectionState === DetectionState.WATCHING ||
+        draft.detectionState === DetectionState.DETECTED;
       draft.demoMode = action.payload.demoMode;
       draft.currentDemo = null;
       draft.prompt = "";
       draft.reason = "";
-      if (action.payload.wasWatching) {
+      if (wasWatching) {
         draft.detectionState = DetectionState.IDLE;
         draft.confidence = 0;
       }
       break;
 
     case Events.onDetectionUpdate:
-      draft.confidence = action.payload.confidence;
-      draft.reason = action.payload.reason;
-      if (action.payload.confidence >= DETECTION_THRESHOLD) {
-        draft.detectionState = DetectionState.DETECTED;
+      if (draft.detectionState === DetectionState.WATCHING) {
+        draft.confidence = action.payload.confidence;
+        draft.reason = action.payload.reason;
+        if (action.payload.confidence >= DETECTION_THRESHOLD) {
+          draft.detectionState = DetectionState.DETECTED;
+        }
       }
+      break;
+
+    case Events.onVideoFrame:
+      draft.lastVideoFrame = action.payload;
       break;
 
     case Events.onWatchingStart:
@@ -394,6 +351,75 @@ function useLanguageLoader(state, dispatch) {
 
     loadTexts();
   }, [currentLanguage]);
+
+  return {};
+}
+
+function useVideoDetection(state, dispatch) {
+  const { detectionState, lastVideoFrame, prompt } = state;
+
+  const isWatching =
+    detectionState === DetectionState.WATCHING ||
+    detectionState === DetectionState.DETECTED;
+  const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  const wsUrl = isWatching
+    ? `${wsProtocol}//${window.location.host}/ws/frames`
+    : null;
+
+  const { sendMessage, lastMessage, readyState } = useWebSocket(wsUrl, {
+    shouldReconnect: () => isWatching,
+    reconnectInterval: 3000,
+    reconnectAttempts: 10,
+  });
+
+  const isReadyWatching = isWatching && readyState === WebSocket.OPEN;
+
+  useEffect(
+    function watchForWebSocketMessages() {
+      const processMessage = async () => {
+        if (!lastMessage || !isWatching) return;
+
+        try {
+          const arrayBuffer = await lastMessage.data.arrayBuffer();
+          const decodedData = MessagePack.decode(new Uint8Array(arrayBuffer));
+          const newConfidence = parseFloat(decodedData.confidence);
+          const newReason = decodedData.reason;
+
+          dispatch({
+            type: Events.onDetectionUpdate,
+            payload: {
+              confidence: newConfidence,
+              reason: newReason,
+            },
+          });
+        } catch (e) {
+          console.error("Error decoding MessagePack:", e);
+        }
+      };
+
+      processMessage();
+    },
+    [isWatching, lastMessage],
+  );
+
+  useEffect(
+    function watchForVideoFrames() {
+      const processFrame = async () => {
+        if (lastVideoFrame && isReadyWatching) {
+          const arrayBuffer = await lastVideoFrame.arrayBuffer();
+          const uint8Array = new Uint8Array(arrayBuffer);
+          const packed = MessagePack.encode({
+            prompt: prompt,
+            frame: uint8Array,
+          });
+          sendMessage(packed);
+        }
+      };
+
+      processFrame();
+    },
+    [isReadyWatching, lastVideoFrame, prompt, sendMessage],
+  );
 
   return {};
 }
@@ -980,4 +1006,4 @@ function VideoCamera({
   );
 }
 
-createRoot(document.getElementById("root")).render(<MainPage />);
+createRoot(document.getElementById("root")).render(<App />);
