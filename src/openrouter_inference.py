@@ -22,6 +22,7 @@ class OpenRouterInference(InferenceEngine):
             self.client = AsyncOpenAI(
                 base_url="https://openrouter.ai/api/v1",
                 api_key=self.api_key,
+                timeout=10.0,
             )
             print("OpenRouter configured successfully")
         else:

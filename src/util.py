@@ -15,7 +15,7 @@ def create_analysis_prompt(prompt: str) -> str:
     - rate: 0-100 (0=no match, 100=perfect match)
     - reason: one concise sentence explaining the rate
 
-    Example: |85|Person wearing red shirt is clearly visible in center of frame|
+    Example: |0|There is no cat visible|
     """
     return re.sub(r'\n\s+', '\n', analysis_prompt)
 
