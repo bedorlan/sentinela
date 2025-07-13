@@ -106,14 +106,14 @@ class OpenRouterInference(InferenceEngine):
             IMPORTANT RULES:
             1. Preserve all emojis exactly as they are
             2. Maintain the same tone and style as the original
-            3. Return ONLY a valid JSON array with the translated texts
+            3. Return ONLY the translated texts separated by |
             4. Keep the same order as the input
             5. Do not add any explanations or additional text
             
             Input texts:
             {json.dumps(texts, ensure_ascii=False, indent=2)}
             
-            Return the translated texts as JSON array:"""
+            Return the translated texts separated by |:"""
 
             messages = [{
                 "role": "user",
@@ -132,15 +132,15 @@ class OpenRouterInference(InferenceEngine):
                 if cleaned_response.endswith("```"):
                     cleaned_response = cleaned_response[:-3]
                 
-                translated_texts = json.loads(cleaned_response.strip())
+                translated_texts = [text.strip() for text in cleaned_response.split("|")]
                 
-                if not isinstance(translated_texts, list) or len(translated_texts) != len(texts):
-                    print(f"Invalid translation response format or length mismatch")
+                if len(translated_texts) != len(texts):
+                    print(f"Translation count mismatch: expected {len(texts)}, got {len(translated_texts)}")
                     return texts
                         
                 return translated_texts
                 
-            except json.JSONDecodeError as e:
+            except Exception as e:
                 print(f"Error parsing translation response: {e}")
                 print(f"Response was: {response_text}")
                 return texts
