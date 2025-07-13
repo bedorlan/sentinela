@@ -3,7 +3,6 @@ from typing import Tuple, Optional, Dict
 import base64
 import os
 import json
-
 from . import util
 from .inference_engine import InferenceEngine
 
@@ -15,7 +14,9 @@ class OpenRouterInference(InferenceEngine):
         self.model_name = 'google/gemma-3n-e4b-it' # this one supports images
         # self.model_name = 'google/gemma-3n-e4b-it:free'
         # self.model_name = 'google/gemma-3-27b-it:free'
+        self._translation_cache = {}
         self._initialize_client()
+        
     
     def _initialize_client(self):
         if self.api_key:
@@ -89,63 +90,49 @@ class OpenRouterInference(InferenceEngine):
             print(f"AI inference error: {str(e)}")
             return ""
     
-    async def translate(self, texts: Dict[str, str], locale: str) -> Dict[str, str]:
+    async def translate(self, texts: list, locale: str) -> list:
         """
-        Translate a dictionary of texts to the specified locale.
+        Translate a list of texts to the specified locale.
         
         Args:
-            texts: Dictionary with keys and text values to translate
+            texts: List of text strings to translate
             locale: Target language locale (e.g., 'es', 'fr', 'pt', 'de')
             
         Returns:
-            Dictionary with same keys but translated values
+            List of translated texts in the same order
         """
+        cache_key = locale
+        
+        if cache_key in self._translation_cache:
+            return self._translation_cache[cache_key]
+        
         try:
-            # Create the translation prompt
-            prompt = f"""You are a professional translator. Translate the following texts to {locale} language.
-            
-            IMPORTANT RULES:
-            1. Only translate the values, not the keys
-            2. Preserve all emojis exactly as they are
-            3. Maintain the same tone and style as the original
-            4. Return ONLY a valid JSON object with the same structure
-            5. Do not add any explanations or additional text
-            
-            Input JSON:
-            {json.dumps(texts, ensure_ascii=False, indent=2)}
-            
-            Return the translated JSON:"""
-
+            texts_str = "|".join(texts)
+            prompt = util.create_translation_prompt(texts_str, locale)
             messages = [{
                 "role": "user",
                 "content": prompt
             }]
-            print(prompt)
             
             response_text = await self._run_ai_inference(messages)
             
-            try:
-                cleaned_response = response_text.strip()
-                if cleaned_response.startswith("```json"):
-                    cleaned_response = cleaned_response[7:]
-                if cleaned_response.startswith("```"):
-                    cleaned_response = cleaned_response[3:]
-                if cleaned_response.endswith("```"):
-                    cleaned_response = cleaned_response[:-3]
-                
-                translated_texts = json.loads(cleaned_response.strip())
-                
-                for key in texts.keys():
-                    if key not in translated_texts:
-                        translated_texts[key] = texts[key]
-                        
-                return translated_texts
-                
-            except json.JSONDecodeError as e:
-                print(f"Error parsing translation response: {e}")
-                print(f"Response was: {response_text}")
+            cleaned_response = response_text.strip()
+            if cleaned_response.startswith("```json"):
+                cleaned_response = cleaned_response[7:]
+            if cleaned_response.startswith("```"):
+                cleaned_response = cleaned_response[3:]
+            if cleaned_response.endswith("```"):
+                cleaned_response = cleaned_response[:-3]
+            
+            translated_texts = [text.strip() for text in cleaned_response.split("|")]
+            
+            if len(translated_texts) != len(texts):
+                print(f"Translation count mismatch: expected {len(texts)}, got {len(translated_texts)}")
                 return texts
-                
+            
+            self._translation_cache[cache_key] = translated_texts
+            return translated_texts
+            
         except Exception as e:
             print(f"Translation error: {str(e)}")
             return texts
