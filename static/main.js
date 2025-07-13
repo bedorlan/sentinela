@@ -153,59 +153,6 @@ const initialState = {
 
 function appReducer(draft, action) {
   switch (action.type) {
-    case Events.onPromptChange:
-      draft.prompt = action.payload;
-      break;
-
-    case Events.onFpsChange:
-      draft.fps = action.payload;
-      break;
-
-    case Events.onImageQualityChange:
-      draft.imageQuality = action.payload;
-      break;
-
-    case Events.onNotificationToggle:
-      draft.enabledNotifications[action.payload] =
-        !draft.enabledNotifications[action.payload];
-      break;
-
-    case Events.onDemosLoad:
-      draft.demos = action.payload;
-      break;
-
-    case Events.onPlaceholderRotate:
-      draft.placeholderIndex =
-        (draft.placeholderIndex + 1) % action.payload.placeholdersLength;
-      break;
-
-    case Events.onLanguageLoadStart:
-      draft.isLoadingTranslation = true;
-      break;
-
-    case Events.onLanguageLoadSuccess:
-      draft.texts = action.payload.texts;
-      draft.isLoadingTranslation = false;
-      break;
-
-    case Events.onLanguageLoadError:
-      draft.isLoadingTranslation = false;
-      break;
-
-    case Events.onLanguageChange:
-      if (draft.detectionState === DetectionState.IDLE) {
-        draft.currentLanguage = action.payload;
-      }
-      break;
-
-    case Events.onDemoStart:
-      draft.demoMode = true;
-      draft.currentDemo = action.payload.demo;
-      draft.prompt = action.payload.demo.prompt;
-      draft.detectionState = DetectionState.WATCHING;
-      draft.reason = "";
-      break;
-
     case Events.onDemoModeSwitch:
       const wasWatching =
         draft.detectionState === DetectionState.WATCHING ||
@@ -220,6 +167,24 @@ function appReducer(draft, action) {
       }
       break;
 
+    case Events.onDemoStart:
+      draft.demoMode = true;
+      draft.currentDemo = action.payload.demo;
+      draft.prompt = action.payload.demo.prompt;
+      draft.detectionState = DetectionState.WATCHING;
+      draft.reason = "";
+      break;
+
+    case Events.onDemosLoad:
+      draft.demos = action.payload;
+      break;
+
+    case Events.onDetectionReset:
+      if (draft.detectionState === DetectionState.DETECTED) {
+        draft.detectionState = DetectionState.WATCHING;
+      }
+      break;
+
     case Events.onDetectionUpdate:
       if (draft.detectionState === DetectionState.WATCHING) {
         draft.confidence = action.payload.confidence;
@@ -228,6 +193,47 @@ function appReducer(draft, action) {
           draft.detectionState = DetectionState.DETECTED;
         }
       }
+      break;
+
+    case Events.onFpsChange:
+      draft.fps = action.payload;
+      break;
+
+    case Events.onImageQualityChange:
+      draft.imageQuality = action.payload;
+      break;
+
+    case Events.onLanguageChange:
+      if (draft.detectionState === DetectionState.IDLE) {
+        draft.currentLanguage = action.payload;
+      }
+      break;
+
+    case Events.onLanguageLoadError:
+      draft.isLoadingTranslation = false;
+      break;
+
+    case Events.onLanguageLoadStart:
+      draft.isLoadingTranslation = true;
+      break;
+
+    case Events.onLanguageLoadSuccess:
+      draft.texts = action.payload.texts;
+      draft.isLoadingTranslation = false;
+      break;
+
+    case Events.onNotificationToggle:
+      draft.enabledNotifications[action.payload] =
+        !draft.enabledNotifications[action.payload];
+      break;
+
+    case Events.onPlaceholderRotate:
+      draft.placeholderIndex =
+        (draft.placeholderIndex + 1) % action.payload.placeholdersLength;
+      break;
+
+    case Events.onPromptChange:
+      draft.prompt = action.payload;
       break;
 
     case Events.onVideoFrame:
@@ -243,12 +249,6 @@ function appReducer(draft, action) {
     case Events.onWatchingStop:
       draft.detectionState = DetectionState.IDLE;
       draft.confidence = 0;
-      break;
-
-    case Events.onDetectionReset:
-      if (draft.detectionState === DetectionState.DETECTED) {
-        draft.detectionState = DetectionState.WATCHING;
-      }
       break;
   }
 }
