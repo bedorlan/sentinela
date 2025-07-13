@@ -87,6 +87,12 @@ function MainPage() {
     loadTexts("en");
   }, []);
 
+  const handleLanguageSwitch = async (languageCode) => {
+    if (languageCode !== currentLanguage) {
+      await loadTexts(languageCode, true);
+    }
+  };
+
   const placeholders = [
     texts.placeholder_tell_me_cat,
     texts.placeholder_alert_smile,
@@ -159,12 +165,6 @@ function MainPage() {
       handleWebSocketMessage(lastMessage);
     }
   }, [lastMessage]);
-
-  const handleLanguageSwitch = async (languageCode) => {
-    if (languageCode !== currentLanguage) {
-      await loadTexts(languageCode, true);
-    }
-  };
 
   const handleWebSocketMessage = async (message) => {
     if (detectionState != DetectionState.WATCHING) return;
@@ -332,8 +332,8 @@ function appReducer(draft, action) {
       break;
 
     case Events.onDemoStart:
-      draft.currentDemo = action.payload.demo;
       draft.demoMode = true;
+      draft.currentDemo = action.payload.demo;
       draft.prompt = action.payload.demo.prompt;
       draft.detectionState = DetectionState.WATCHING;
       draft.reason = "";
@@ -360,6 +360,7 @@ function appReducer(draft, action) {
 
     case Events.onWatchingStart:
       draft.detectionState = DetectionState.WATCHING;
+      draft.confidence = 0;
       draft.reason = "";
       break;
 
@@ -379,30 +380,31 @@ function appReducer(draft, action) {
 function MainUI({
   confidence,
   currentDemo,
+  currentLanguage,
   demoMode,
   demos,
   detectionState,
   enabledNotifications,
   fps,
   imageQuality,
+  isLoadingTranslation,
   isRecording,
   isWatching,
   placeholderText,
   prompt,
   reason,
   texts,
-  isLoadingTranslation,
-  currentLanguage,
+  // events
   onDemoSelect,
   onFpsChange,
   onHandleFrame,
   onImageQualityChange,
+  onLanguageSwitch,
   onModeToggle,
   onNotificationToggle,
   onPromptChange,
   onStartWatching,
   onStopWatching,
-  onLanguageSwitch,
 }) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 text-white overflow-hidden relative">
