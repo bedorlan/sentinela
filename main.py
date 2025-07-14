@@ -191,7 +191,8 @@ async def inference_worker(websocket: WebSocket, session_info: dict):
                         "reason": reason
                     }
                     packed_response = msgpack.packb(response_data)
-                    asyncio.create_task(websocket.send_bytes(packed_response))
+                    if websocket.client_state.value == 1:
+                        asyncio.create_task(websocket.send_bytes(packed_response))
                 except Exception as e:
                     logger.error(f"Error processing frame: {e}")
 
