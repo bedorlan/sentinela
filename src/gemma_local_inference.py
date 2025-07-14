@@ -1,7 +1,7 @@
 from huggingface_hub import login
 from PIL import Image
 from transformers import pipeline
-from typing import Tuple, Optional
+from typing import Tuple, Optional, List
 import asyncio
 import io
 import os
@@ -48,14 +48,14 @@ class GemmaLocalInference(InferenceEngine):
             print("Application cannot function without local model. Exiting.")
             exit(1)
     
-    async def process_frame(self, frame_data: bytes, prompt: str) -> Tuple[bool, Optional[str]]:
+    async def process_frames(self, frames_data: List[bytes], prompt: str) -> Tuple[bool, Optional[str]]:
         if self.analysis_in_progress:
             return False, None
         
         self.analysis_in_progress = True
         
         try:
-            ai_response = await self._analyze_frame_with_model(frame_data, prompt)
+            ai_response = await self._analyze_frames_with_model(frames_data, prompt)
             if not ai_response:
                 return False, None
                 
@@ -64,25 +64,26 @@ class GemmaLocalInference(InferenceEngine):
         finally:
             self.analysis_in_progress = False
     
-    async def _analyze_frame_with_model(self, frame_data: bytes, prompt: str) -> str:
+    async def _analyze_frames_with_model(self, frames_data: List[bytes], prompt: str) -> str:
         try:
             loop = asyncio.get_event_loop()
-            result = await loop.run_in_executor(None, self._run_inference, frame_data, prompt)
+            result = await loop.run_in_executor(None, self._run_inference, frames_data, prompt)
             return result
 
         except Exception as e:
             print(f"Model analysis error: {str(e)}")
             return ""
     
-    def _run_inference(self, frame_data: bytes, prompt: str) -> str:
+    def _run_inference(self, frames_data: list[bytes], prompt: str) -> str:
         try:
-            resized_frame_data = util.resize_frame(frame_data)
-            image = Image.open(io.BytesIO(resized_frame_data))
+            content = []
+            for frame_data in frames_data:
+                resized_frame_data = util.resize_frame(frame_data)
+                image = Image.open(io.BytesIO(resized_frame_data))
+                content.append({"type": "image", "image": image})
+            
             analysis_prompt = util.create_analysis_prompt(prompt)
-            content = [
-                {"type": "image", "image": image},
-                {"type": "text", "text": analysis_prompt},
-            ]
+            content.append({"type": "text", "text": analysis_prompt})
             messages = [
                 {
                     "role": "user",

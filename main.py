@@ -11,6 +11,9 @@ import uuid
 
 from src.inference_engine import InferenceEngine
 
+FPS = 3
+FRAMES_TO_PROCESS = 2 * FPS
+FRAME_BUFFER_SIZE = 3 * FPS
 
 app = FastAPI()
 security = HTTPBasic()
@@ -50,7 +53,8 @@ async def read_root(username: str = Depends(authenticate), session_id: str = Coo
         sessions[session_id] = {
             "username": username,
             "created_at": datetime.now(),
-            "inference_in_progress": False
+            "frame_buffer": [],
+            "current_prompt": None
         }
         print(f"New session created: {session_id} for user: {username}")
     
@@ -119,42 +123,64 @@ async def websocket_frames(websocket: WebSocket):
     await websocket.accept()
     session_info = sessions[session_id]
     print(f"WebSocket connection established at {datetime.now()} for session: {session_id}, user: {session_info['username']}")
-    
+
+    session_info["current_prompt"] = None
+    session_info["frame_buffer"].clear()
+    inference_task = asyncio.create_task(inference_worker(websocket, session_info))
+
     try:
-        frame_count = 0
-        dropped_frames = 0
         while True:
             packed_data = await websocket.receive_bytes()
-            frame_count += 1
             
             data = msgpack.unpackb(packed_data, raw=False)
-            
             prompt = data.get("prompt", "")
             frame_data = bytes(data.get("frame", []))
             
             if not prompt or not frame_data:
                 continue
 
-            if session_info["inference_in_progress"]:
-                dropped_frames += 1
-                print(".", end="")
-                continue
+            if session_info["current_prompt"] != prompt:
+                session_info["frame_buffer"].clear()
+                session_info["current_prompt"] = prompt
             
-            session_info["inference_in_progress"] = True
+            session_info["frame_buffer"].append(frame_data)
+            
+            if len(session_info["frame_buffer"]) > FRAME_BUFFER_SIZE:
+                del session_info["frame_buffer"][:-FRAME_BUFFER_SIZE]
+            
+    except Exception as e:
+        print(f"WebSocket error: {e}")
+    finally:
+        try:
+            inference_task.cancel()
+            await inference_task
+        except asyncio.CancelledError:
+            pass
+    
+    print(f"WebSocket connection closed at {datetime.now()}")
 
+async def inference_worker(websocket: WebSocket, session_info: dict):
+    while websocket.client_state.value == 1:
+        try:
+            await asyncio.sleep(1)
+                
+            frames_to_process = session_info["frame_buffer"][-FRAMES_TO_PROCESS:]
+            current_prompt = session_info["current_prompt"]
+            
+            if not current_prompt:
+                print("weird: no prompt")
+                continue
+
+            start_time = datetime.now()
             def handle_frame_result(task):
                 try:
                     processed, ai_response = task.result()
-                    if not processed:
-                        nonlocal dropped_frames
-                        dropped_frames += 1
-                        print(".", end="")
-                        return
-
-                    if websocket.client_state.value != 1:  # Not connected
+                    if not processed or websocket.client_state.value != 1:
                         return
                         
                     confidence, reason = ai_response
+                    elapsed_time = (datetime.now() - start_time).total_seconds()
+                    print(f"processing_time={elapsed_time:.2f}s, confidence={confidence}, reason={reason}")
                     response_data = {
                         "confidence": confidence,
                         "reason": reason
@@ -163,19 +189,12 @@ async def websocket_frames(websocket: WebSocket):
                     asyncio.create_task(websocket.send_bytes(packed_response))
                 except Exception as e:
                     print(f"Error processing frame: {e}")
-                finally:
-                    session_info["inference_in_progress"] = False
 
-            task = asyncio.create_task(inference_engine.process_frame(frame_data, prompt))
+            task = asyncio.create_task(inference_engine.process_frames(frames_to_process, current_prompt))
             task.add_done_callback(handle_frame_result)
             
-    except Exception as e:
-        print(f"WebSocket error: {e}")
-    finally:
-        session_info["inference_in_progress"] = False
-        print(f"WebSocket connection closed at {datetime.now()}")
-        print(f"Total frames received: {frame_count}")
-        print(f"Total frames processed: {frame_count - dropped_frames}")
+        except Exception as e:
+            print(f"Inference worker error: {e}")
 
 if __name__ == "__main__":
     import uvicorn

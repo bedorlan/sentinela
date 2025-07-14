@@ -9,7 +9,7 @@ def create_analysis_prompt(prompt: str) -> str:
     """
     analysis_prompt = f"""
     You are a sentinel watching for: {prompt}.
-    Rate how well the images match what you are watching.
+    Rate how well the video match what you are watching.
 
     Respond ONLY in this format: |rate|reason|
     - rate: 0-100 (0=no match, 100=perfect match)
@@ -29,15 +29,7 @@ def extract_score_and_reason(response: str) -> tuple[int, str]:
         if match:
             score = int(match.group(1))
             reason = match.group(2).strip()
-            print(f"score={score}, reason={reason}")
             return score, reason
-        
-        digits = re.findall(r'\d+', response)
-        if digits:
-            score = int(digits[0])
-            if score >= 0 and score <= 100:
-                print(f"digits={digits}")
-                return score, ""
         
         print(f"weird ai response={response}")
         return 0, ""

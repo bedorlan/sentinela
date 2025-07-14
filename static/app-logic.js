@@ -49,7 +49,7 @@ export const initialState = {
     sms: false,
     webhook: false,
   },
-  fps: 1,
+  fps: 3,
   imageQuality: 0.9,
   isLoadingTranslation: false,
   lastVideoFrame: null,
@@ -98,6 +98,7 @@ export function appReducer(draft, action) {
 
     case Events.onDetectionUpdate:
       if (draft.detectionState !== DetectionState.WATCHING) break;
+      if (!action.payload.reason) break;
       draft.confidence = action.payload.confidence;
       draft.reason = action.payload.reason;
       if (action.payload.confidence < CONFIDENCE_THRESHOLD) {

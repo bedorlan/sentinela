@@ -8,13 +8,7 @@
   {
     "demo_name": "👴 Elderly safety",
     "file": "elderly.mp4",
-    "prompt": "person lying on the ground",
+    "prompt": "person falling to the ground",
     "credits": "https://www.youtube.com/watch?v=ZSTflpwEPnw"
-  },
-  {
-    "demo_name": "🕺 I'm not gonna fall",
-    "file": "falling.mp4",
-    "prompt": "person lying face up in the snow",
-    "credits": "https://www.youtube.com/shorts/9wXLhLMVWwU"
   }
 ]

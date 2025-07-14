@@ -1,4 +1,4 @@
-from typing import Tuple, Optional
+from typing import Tuple, Optional, List
 import google.generativeai as genai
 import os
 
@@ -23,19 +23,19 @@ class GoogleAIStudioInference(InferenceEngine):
             print("Application cannot function without Google AI API key. Exiting.")
             exit(1)
 
-    async def process_frame(self, frame_data: bytes, prompt: str) -> Tuple[bool, Optional[str]]:
+    async def process_frames(self, frames_data: List[bytes], prompt: str) -> Tuple[bool, Optional[str]]:
         """
-        Process a frame for AI analysis.
+        Process multiple frames for AI analysis.
         
         Returns:
             Tuple[bool, Optional[str]]: (should_process, ai_response)
-            - If should_process is False, the frame was dropped
+            - If should_process is False, the frames were dropped
             - If should_process is True, ai_response contains the analysis result
         """
-        ai_response = await self._analyze_frame_with_ai([frame_data], prompt)
+        ai_response = await self._analyze_frame_with_ai(frames_data, prompt)
         if not ai_response:
             return False, None
-            
+
         score, reason = util.extract_score_and_reason(ai_response)            
         return True, (score, reason)
 
