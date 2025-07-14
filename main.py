@@ -3,17 +3,15 @@ from fastapi import FastAPI, WebSocket, Depends, HTTPException, Cookie
 from fastapi.responses import FileResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.staticfiles import StaticFiles
+from src.inference_engine import InferenceEngine
 import asyncio
 import json
 import logging
 import msgpack
 import os
+import sys
 import uuid
 
-from src.inference_engine import InferenceEngine
-
-logging.basicConfig(level=logging.INFO)
-logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 FPS = 3
@@ -202,6 +200,18 @@ async def inference_worker(websocket: WebSocket, session_info: dict):
         except Exception as e:
             logger.error(f"Inference worker error: {e}")
 
+def setup_logging():
+    info_handler = logging.StreamHandler(sys.stdout)
+    info_handler.setLevel(logging.INFO)
+    info_handler.addFilter(lambda record: record.levelno < logging.WARNING)
+
+    warning_handler = logging.StreamHandler(sys.stderr)
+    warning_handler.setLevel(logging.WARNING)
+
+    logging.basicConfig(level=logging.INFO, handlers=[info_handler, warning_handler])
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+
 if __name__ == "__main__":
+    setup_logging()
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
