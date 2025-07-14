@@ -4,11 +4,14 @@ from transformers import pipeline
 from typing import Tuple, Optional, List
 import asyncio
 import io
+import logging
 import os
 import torch
 
 from . import util
 from .inference_engine import InferenceEngine
+
+logger = logging.getLogger(__name__)
 
 
 class GemmaLocalInference(InferenceEngine):
@@ -22,13 +25,13 @@ class GemmaLocalInference(InferenceEngine):
         hf_token = os.getenv('HF_TOKEN')
         if hf_token:
             login(hf_token)
-            print("Logged in to Hugging Face")
+            logger.info("Logged in to Hugging Face")
         else:
-            print("ERROR: HF_TOKEN environment variable not found")
-            print("Application cannot function without Hugging Face token. Exiting.")
+            logger.error("HF_TOKEN environment variable not found")
+            logger.error("Application cannot function without Hugging Face token. Exiting.")
             exit(1)
         
-        print(f"Loading {self.model_name} model...")
+        logger.info(f"Loading {self.model_name} model...")
         
         try:
             self.pipe = pipeline(
@@ -40,12 +43,12 @@ class GemmaLocalInference(InferenceEngine):
             )
 
             if hasattr(torch, 'compile'):
-                print("Compiling model...")
+                logger.info("Compiling model...")
                 self.pipe.model = torch.compile(self.pipe.model, mode="max-autotune")
 
         except Exception as e:
-            print(f"ERROR: Failed to load Gemma model: {str(e)}")
-            print("Application cannot function without local model. Exiting.")
+            logger.error(f"Failed to load Gemma model: {str(e)}")
+            logger.error("Application cannot function without local model. Exiting.")
             exit(1)
     
     async def process_frames(self, frames_data: List[bytes], prompt: str) -> Tuple[bool, Optional[str]]:
@@ -71,7 +74,7 @@ class GemmaLocalInference(InferenceEngine):
             return result
 
         except Exception as e:
-            print(f"Model analysis error: {str(e)}")
+            logger.error(f"Model analysis error: {str(e)}")
             return ""
     
     def _run_inference(self, frames_data: list[bytes], prompt: str) -> str:
@@ -96,6 +99,6 @@ class GemmaLocalInference(InferenceEngine):
             return answer
             
         except Exception as e:
-            print(f"Inference error: {str(e)}")
+            logger.error(f"Inference error: {str(e)}")
             return ""
     

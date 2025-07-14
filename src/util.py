@@ -1,6 +1,9 @@
 from PIL import Image
 import io
+import logging
 import re
+
+logger = logging.getLogger(__name__)
 
 
 def create_analysis_prompt(prompt: str) -> str:
@@ -31,11 +34,11 @@ def extract_score_and_reason(response: str) -> tuple[int, str]:
             reason = match.group(2).strip()
             return score, reason
         
-        print(f"weird ai response={response}")
+        logger.warning(f"weird ai response={response}")
         return 0, ""
         
     except Exception as e:
-        print(f"Error extracting score: {e}")
+        logger.error(f"Error extracting score: {e}")
         return 0, ""
 
 def create_translation_prompt(texts: str, locale: str) -> str:
@@ -80,5 +83,5 @@ def resize_frame(frame_data: bytes, max_size: int = 768) -> bytes:
         return output_buffer.getvalue()
         
     except Exception as e:
-        print(f"Error resizing frame: {e}")
+        logger.error(f"Error resizing frame: {e}")
         return frame_data

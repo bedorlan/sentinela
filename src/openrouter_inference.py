@@ -1,10 +1,13 @@
 from openai import AsyncOpenAI
 from typing import Tuple, Optional, List
 import base64
+import logging
 import os
 
 from . import util
 from .inference_engine import InferenceEngine
+
+logger = logging.getLogger(__name__)
 
 
 class OpenRouterInference(InferenceEngine):
@@ -25,10 +28,10 @@ class OpenRouterInference(InferenceEngine):
                 api_key=self.api_key,
                 timeout=10.0,
             )
-            print("OpenRouter configured successfully")
+            logger.info("OpenRouter configured successfully")
         else:
-            print("ERROR: OPENROUTER_API_KEY not found in environment variables")
-            print("Application cannot function without OpenRouter API key. Exiting.")
+            logger.error("OPENROUTER_API_KEY not found in environment variables")
+            logger.error("Application cannot function without OpenRouter API key. Exiting.")
             exit(1)
 
     async def process_frames(self, frames_data: List[bytes], prompt: str) -> Tuple[bool, Optional[str]]:
@@ -75,7 +78,7 @@ class OpenRouterInference(InferenceEngine):
             return response_text
             
         except Exception as e:
-            print(f"AI analysis error: {str(e)}")
+            logger.error(f"AI analysis error: {str(e)}")
             return ""
     
     async def _run_ai_inference(self, messages):
@@ -87,7 +90,7 @@ class OpenRouterInference(InferenceEngine):
             )
             return response.choices[0].message.content
         except Exception as e:
-            print(f"AI inference error: {str(e)}")
+            logger.error(f"AI inference error: {str(e)}")
             return ""
     
     async def translate(self, texts: list, locale: str) -> list:
@@ -127,12 +130,12 @@ class OpenRouterInference(InferenceEngine):
             translated_texts = [text.strip() for text in cleaned_response.split("|")]
             
             if len(translated_texts) != len(texts):
-                print(f"Translation count mismatch: expected {len(texts)}, got {len(translated_texts)}")
+                logger.warning(f"Translation count mismatch: expected {len(texts)}, got {len(translated_texts)}")
                 return texts
             
             self._translation_cache[cache_key] = translated_texts
             return translated_texts
             
         except Exception as e:
-            print(f"Translation error: {str(e)}")
+            logger.error(f"Translation error: {str(e)}")
             return texts

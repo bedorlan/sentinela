@@ -1,9 +1,12 @@
 from typing import Tuple, Optional, List
 import google.generativeai as genai
+import logging
 import os
 
 from . import util
 from .inference_engine import InferenceEngine
+
+logger = logging.getLogger(__name__)
 
 
 class GoogleAIStudioInference(InferenceEngine):
@@ -17,10 +20,10 @@ class GoogleAIStudioInference(InferenceEngine):
         if self.google_api_key:
             genai.configure(api_key=self.google_api_key)
             self.model = genai.GenerativeModel(self.model_name)
-            print("Google AI configured successfully")
+            logger.info("Google AI configured successfully")
         else:
-            print("ERROR: GOOGLE_API_KEY not found in environment variables")
-            print("Application cannot function without Google AI API key. Exiting.")
+            logger.error("GOOGLE_API_KEY not found in environment variables")
+            logger.error("Application cannot function without Google AI API key. Exiting.")
             exit(1)
 
     async def process_frames(self, frames_data: List[bytes], prompt: str) -> Tuple[bool, Optional[str]]:
@@ -63,7 +66,7 @@ class GoogleAIStudioInference(InferenceEngine):
             return response_text
             
         except Exception as e:
-            print(f"AI analysis error: {str(e)}")
+            logger.error(f"AI analysis error: {str(e)}")
             return ""
     
     async def _run_ai_inference(self, content):
@@ -72,7 +75,7 @@ class GoogleAIStudioInference(InferenceEngine):
             response = await self.model.generate_content_async(content)
             return response.text
         except Exception as e:
-            print(f"AI inference error: {str(e)}")
+            logger.error(f"AI inference error: {str(e)}")
             return ""
         
     

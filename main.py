@@ -5,11 +5,16 @@ from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.staticfiles import StaticFiles
 import asyncio
 import json
+import logging
 import msgpack
 import os
 import uuid
 
 from src.inference_engine import InferenceEngine
+
+logging.basicConfig(level=logging.INFO)
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logger = logging.getLogger(__name__)
 
 FPS = 3
 FRAMES_TO_PROCESS = 2 * FPS
@@ -30,8 +35,8 @@ elif os.getenv("HF_TOKEN"):
     from src.gemma_local_inference import GemmaLocalInference
     inference_engine = GemmaLocalInference()
 else:
-    print("ERROR: No API key environment variable is set")
-    print("Please set OPENROUTER_API_KEY, GOOGLE_API_KEY, or HF_TOKEN to use the appropriate inference engine")
+    logger.error("No API key environment variable is set")
+    logger.error("Please set OPENROUTER_API_KEY, GOOGLE_API_KEY, or HF_TOKEN to use the appropriate inference engine")
     exit(1)
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -56,7 +61,7 @@ async def read_root(username: str = Depends(authenticate), session_id: str = Coo
             "frame_buffer": [],
             "current_prompt": None
         }
-        print(f"New session created: {session_id} for user: {username}")
+        logger.info(f"New session created: {session_id} for user: {username}")
     
     response = FileResponse("static/index.html")
     response.set_cookie(
@@ -102,7 +107,7 @@ async def get_translations(language: str, username: str = Depends(authenticate))
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="Base texts file not found")
     except Exception as e:
-        print(f"Translation error: {str(e)}")
+        logger.error(f"Translation error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Translation failed: {str(e)}")
 
 @app.websocket("/ws/frames")
@@ -116,13 +121,13 @@ async def websocket_frames(websocket: WebSocket):
                 break
     
     if not session_id or session_id not in sessions:
-        print(f"WebSocket connection rejected: Invalid session ID: {session_id}")
+        logger.warning(f"WebSocket connection rejected: Invalid session ID: {session_id}")
         await websocket.close(code=1008, reason="Invalid session")
         return
     
     await websocket.accept()
     session_info = sessions[session_id]
-    print(f"WebSocket connection established at {datetime.now()} for session: {session_id}, user: {session_info['username']}")
+    logger.info(f"WebSocket connection established at {datetime.now()} for session: {session_id}, user: {session_info['username']}")
 
     session_info["current_prompt"] = None
     session_info["frame_buffer"].clear()
@@ -149,7 +154,7 @@ async def websocket_frames(websocket: WebSocket):
                 del session_info["frame_buffer"][:-FRAME_BUFFER_SIZE]
             
     except Exception as e:
-        print(f"WebSocket error: {e}")
+        logger.error(f"WebSocket error: {e}")
     finally:
         try:
             inference_task.cancel()
@@ -157,7 +162,7 @@ async def websocket_frames(websocket: WebSocket):
         except asyncio.CancelledError:
             pass
     
-    print(f"WebSocket connection closed at {datetime.now()}")
+    logger.info(f"WebSocket connection closed at {datetime.now()}")
 
 async def inference_worker(websocket: WebSocket, session_info: dict):
     while websocket.client_state.value == 1:
@@ -168,7 +173,7 @@ async def inference_worker(websocket: WebSocket, session_info: dict):
             current_prompt = session_info["current_prompt"]
             
             if not current_prompt:
-                print("weird: no prompt")
+                logger.warning("weird: no prompt")
                 continue
 
             start_time = datetime.now()
@@ -180,7 +185,7 @@ async def inference_worker(websocket: WebSocket, session_info: dict):
                         
                     confidence, reason = ai_response
                     elapsed_time = (datetime.now() - start_time).total_seconds()
-                    print(f"processing_time={elapsed_time:.2f}s, confidence={confidence}, reason={reason}")
+                    logger.info(f"processing_time={elapsed_time:.2f}s, confidence={confidence}, reason={reason}")
                     response_data = {
                         "confidence": confidence,
                         "reason": reason
@@ -188,13 +193,13 @@ async def inference_worker(websocket: WebSocket, session_info: dict):
                     packed_response = msgpack.packb(response_data)
                     asyncio.create_task(websocket.send_bytes(packed_response))
                 except Exception as e:
-                    print(f"Error processing frame: {e}")
+                    logger.error(f"Error processing frame: {e}")
 
             task = asyncio.create_task(inference_engine.process_frames(frames_to_process, current_prompt))
             task.add_done_callback(handle_frame_result)
             
         except Exception as e:
-            print(f"Inference worker error: {e}")
+            logger.error(f"Inference worker error: {e}")
 
 if __name__ == "__main__":
     import uvicorn
