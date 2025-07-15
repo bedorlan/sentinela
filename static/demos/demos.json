@@ -3,18 +3,36 @@
     "demo_name": "🐾 Footprints on my bed",
     "file": "dog.mp4",
     "prompt": "white dog on bed, not on floor",
-    "credits": "https://www.youtube.com/watch?v=8JFaTq3eUpc"
+    "original": "https://www.youtube.com/watch?v=8JFaTq3eUpc"
   },
   {
     "demo_name": "🛡️ Security guard",
     "file": "home_alone.mp4",
     "prompt": "My house is alone and no one should enter it",
-    "credits": "https://www.youtube.com/watch?v=6iIUNo3oKGQ"
+    "original": "https://www.youtube.com/watch?v=6iIUNo3oKGQ"
   },
   {
     "demo_name": "👴 Elderly safety",
     "file": "elderly.mp4",
     "prompt": "person falling to the ground",
-    "credits": "https://www.youtube.com/watch?v=ZSTflpwEPnw"
+    "original": "https://www.youtube.com/watch?v=ZSTflpwEPnw"
+  },
+  {
+    "demo_name": "👶 Crib escape",
+    "file": "baby.mp4",
+    "prompt": "baby in danger",
+    "original": "https://www.youtube.com/watch?v=8MwC0u-orNw"
+  },
+  {
+    "demo_name": "🏭 Industrial safety",
+    "file": "industrial.mp4",
+    "prompt": "uncontrolled fires",
+    "original": "https://www.youtube.com/watch?v=CtmxTj9pKqg"
+  },
+  {
+    "demo_name": "🚗 Parking entrance",
+    "file": "gate.mp4",
+    "prompt": "car at the gate with visible license plate. read the license plate",
+    "original": "https://www.youtube.com/watch?v=ju8baHe6jwM"
   }
 ]
