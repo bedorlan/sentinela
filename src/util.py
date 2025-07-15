@@ -11,14 +11,18 @@ def create_analysis_prompt(prompt: str) -> str:
     Create a standardized analysis prompt for AI models.
     """
     analysis_prompt = f"""
-    You are a sentinel watching for: {prompt}.
-    Rate how well the video match what you are watching.
+        Analyze the image/video frame against the user's description.
 
-    Respond ONLY in this format: |rate|reason|
-    - rate: 0-100 (0=no match, 100=perfect match)
-    - reason: one concise sentence explaining the rate
+        Respond ONLY in this format: |rate|reason|
+        - rate: 0-100 confidence score (0=no match, 100=perfect match)
+        - reason: one concise sentence explaining the match
 
-    Example: |50|Not sure if there is a cat|
+        Examples:
+        |100|Clear orange cat sitting on the couch|
+        |0|No people visible in the frame|
+        |75|Person appears to be smiling but partially obscured|
+
+        User Prompt: {prompt}
     """
     return re.sub(r'\n\s+', '\n', analysis_prompt)
 

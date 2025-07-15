@@ -52,6 +52,7 @@ export const initialState = {
   fps: 3,
   imageQuality: 0.9,
   isLoadingTranslation: false,
+  lastReasonUpdateTime: 0,
   lastVideoFrame: null,
   placeholderIndex: 0,
   prompt: "",
@@ -99,15 +100,26 @@ export function appReducer(draft, action) {
     case Events.onDetectionUpdate:
       if (draft.detectionState !== DetectionState.WATCHING) break;
       if (!action.payload.reason) break;
+
       draft.confidence = action.payload.confidence;
-      draft.reason = action.payload.reason;
+
+      const currentTime = Date.now();
+      const timeSinceLastReasonUpdate =
+        currentTime - draft.lastReasonUpdateTime;
+      if (timeSinceLastReasonUpdate >= 2000) {
+        draft.reason = action.payload.reason;
+        draft.lastReasonUpdateTime = currentTime;
+      }
       if (action.payload.confidence < CONFIDENCE_THRESHOLD) {
         draft.consecutiveDetections = 0;
         break;
       }
+
       draft.consecutiveDetections++;
       if (draft.consecutiveDetections >= CONSECUTIVE_DETECTIONS_REQUIRED) {
         draft.detectionState = DetectionState.DETECTED;
+        draft.reason = action.payload.reason;
+        draft.lastReasonUpdateTime = currentTime;
       }
       break;
 
