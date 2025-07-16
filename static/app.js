@@ -65,14 +65,8 @@ function App() {
         dispatch({ type: Events.onDemoStart, payload: { demo } });
         console.log(`Starting demo: ${demo.demo_name}`);
       }}
-      onFpsChange={(newFps) =>
-        dispatch({ type: Events.onFpsChange, payload: newFps })
-      }
       onHandleFrame={(blob) =>
         dispatch({ type: Events.onVideoFrame, payload: blob })
-      }
-      onImageQualityChange={(newQuality) =>
-        dispatch({ type: Events.onImageQualityChange, payload: newQuality })
       }
       onModeToggle={() => {
         dispatch({
@@ -89,8 +83,6 @@ function App() {
       onStartWatching={() => {
         dispatch({ type: Events.onWatchingStart });
         console.log(`Starting to watch for: ${prompt}`);
-        console.log(`FPS: ${fps}`);
-        console.log(`Image Quality: ${imageQuality}`);
       }}
       onStopWatching={() => {
         dispatch({ type: Events.onWatchingStop });
@@ -125,9 +117,7 @@ function MainUI({
   texts,
   // events
   onDemoSelect,
-  onFpsChange,
   onHandleFrame,
-  onImageQualityChange,
   onLanguageSwitch,
   onModeToggle,
   onNotificationToggle,
@@ -282,60 +272,13 @@ function MainUI({
               <label className="block text-xl mb-3 font-semibold">
                 {texts.what_to_watch}
               </label>
-              <input
-                type="text"
+              <textarea
                 value={prompt}
                 onChange={(e) => onPromptChange(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && prompt && !isWatching) {
-                    onStartWatching();
-                  }
-                }}
                 placeholder={placeholderText}
-                className="w-full px-6 py-4 rounded-2xl bg-white/10 border border-white/30 text-xl placeholder-gray-400 focus:outline-none focus:border-yellow-400 focus:bg-white/20 transition-all"
+                className="w-full px-6 py-4 rounded-2xl bg-white/10 border border-white/30 text-xl placeholder-gray-400 focus:outline-none focus:border-yellow-400 focus:bg-white/20 transition-all resize-y min-h-[120px]"
                 disabled={isWatching}
               />
-            </div>
-
-            {/* FPS Control */}
-            <div className="mb-6">
-              <label className="block text-xl mb-3 font-semibold">
-                {texts.fps_label}
-              </label>
-              <input
-                type="number"
-                min="0.1"
-                max="30"
-                step="0.1"
-                value={fps}
-                onChange={(e) => onFpsChange(parseFloat(e.target.value) || 1)}
-                className="w-full px-6 py-4 rounded-2xl bg-white/10 border border-white/30 text-xl placeholder-gray-400 focus:outline-none focus:border-yellow-400 focus:bg-white/20 transition-all"
-                disabled={isWatching}
-              />
-            </div>
-
-            {/* Image Quality Control */}
-            <div className="mb-6">
-              <label className="block text-xl mb-3 font-semibold">
-                {texts.image_quality_label} {Math.round(imageQuality * 100)}%
-              </label>
-              <input
-                type="range"
-                min="0.1"
-                max="1"
-                step="0.05"
-                value={imageQuality}
-                onChange={(e) =>
-                  onImageQualityChange(parseFloat(e.target.value))
-                }
-                className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer accent-yellow-400 disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={isWatching}
-              />
-              <div className="flex justify-between text-sm mt-2 text-gray-300">
-                <span>{texts.low_quality}</span>
-                <span>{texts.medium_quality}</span>
-                <span>{texts.high_quality}</span>
-              </div>
             </div>
 
             {/* Notification Type */}
