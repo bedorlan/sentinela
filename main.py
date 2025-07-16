@@ -87,9 +87,8 @@ async def get_translations(language: str, username: str = Depends(authenticate))
         logger.error(f"Translation error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Translation failed: {str(e)}")
     
-FPS = 3
-FRAMES_TO_PROCESS = 2 * FPS
-FRAME_BUFFER_SIZE = 3 * FPS
+FRAMES_PER_INFERENCE = 6
+FRAME_BUFFER_SIZE = 9
 
 @app.websocket("/ws/frames")
 async def websocket_frames(websocket: WebSocket):
@@ -150,23 +149,24 @@ async def inference_worker(websocket: WebSocket, session_info: dict):
         try:
             await asyncio.sleep(1)
                 
-            frames_to_process = session_info["frame_buffer"][-FRAMES_TO_PROCESS:]
+            frames_to_process = session_info["frame_buffer"][-FRAMES_PER_INFERENCE:]
             current_prompt = session_info["current_prompt"]
             
             if not current_prompt:
                 logger.warning("weird: no prompt")
                 continue
 
-            start_time = datetime.now()
             def handle_frame_result(task):
                 try:
                     processed, ai_response = task.result()
                     if not processed or websocket.client_state.value != 1:
                         return
                         
-                    confidence, reason = ai_response
+                    confidence, reason, start_time = ai_response
                     elapsed_time = (datetime.now() - start_time).total_seconds()
                     logger.info(f"processing_time={elapsed_time:.2f}s, confidence={confidence}, reason={reason}")
+                    if elapsed_time > 1.0:
+                        logger.warning(f"High processing time {elapsed_time:.2f}s, consider lowering FRAMES_PER_INFERENCE for better performance")
                     response_data = {
                         "confidence": confidence,
                         "reason": reason

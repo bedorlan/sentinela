@@ -1,5 +1,6 @@
 from . import util
 from .inference_engine import InferenceEngine
+from datetime import datetime
 from huggingface_hub import login
 from PIL import Image
 from transformers import pipeline
@@ -59,12 +60,13 @@ class GemmaLocalInference(InferenceEngine):
         self.active_inferences += 1
         
         try:
+            start_time = datetime.now()
             ai_response = await self._analyze_frames_with_model(frames_data, prompt)
             if not ai_response:
                 return False, None
                 
             score, reason = util.extract_score_and_reason(ai_response)
-            return True, (score, reason)
+            return True, (score, reason, start_time)
         finally:
             self.active_inferences -= 1
     

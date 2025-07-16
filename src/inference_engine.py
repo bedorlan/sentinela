@@ -15,6 +15,6 @@ class InferenceEngine(Protocol):
         Returns:
             Tuple[bool, Optional[str]]: (should_process, result)
             - If should_process is False, the frames were dropped
-            - If should_process is True, result contains the inference result
+            - If should_process is True, result contains (score, reason, start_time)
         """
         ...

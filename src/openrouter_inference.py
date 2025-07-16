@@ -1,5 +1,6 @@
 from . import util
 from .inference_engine import InferenceEngine
+from datetime import datetime
 from openai import AsyncOpenAI
 from typing import Tuple, Optional, List
 import base64
@@ -42,12 +43,13 @@ class OpenRouterInference(InferenceEngine):
             - If should_process is False, the frames were dropped
             - If should_process is True, ai_response contains the analysis result
         """
+        start_time = datetime.now()
         ai_response = await self._analyze_frame_with_ai(frames_data, prompt)
         if not ai_response:
             return False, None
 
         score, reason = util.extract_score_and_reason(ai_response)            
-        return True, (score, reason)
+        return True, (score, reason, start_time)
 
     async def _analyze_frame_with_ai(self, frames: list, prompt: str) -> str:
         """Internal function to analyze frames using OpenRouter"""
