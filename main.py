@@ -4,6 +4,7 @@ from fastapi.responses import FileResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.staticfiles import StaticFiles
 from src.inference_engine import InferenceEngine
+from src.model.session import Session
 import asyncio
 import json
 import logging
@@ -16,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI()
 security = HTTPBasic()
-sessions = {}
+sessions: dict[str, Session] = {}
 inference_engine: InferenceEngine = None
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -35,12 +36,10 @@ def authenticate(credentials: HTTPBasicCredentials = Depends(security)):
 async def read_root(username: str = Depends(authenticate), session_id: str = Cookie(None)):
     if not session_id or session_id not in sessions:
         session_id = str(uuid.uuid4())
-        sessions[session_id] = {
-            "username": username,
-            "created_at": datetime.now(),
-            "frame_buffer": [],
-            "current_prompt": None
-        }
+        sessions[session_id] = Session(
+            username=username,
+            created_at=datetime.now()
+        )
         logger.info(f"New session created: {session_id} for user: {username}")
     
     response = FileResponse("static/index.html")
@@ -107,10 +106,10 @@ async def websocket_frames(websocket: WebSocket):
     
     await websocket.accept()
     session_info = sessions[session_id]
-    logger.info(f"WebSocket connection established at {datetime.now()} for session: {session_id}, user: {session_info['username']}")
+    logger.info(f"WebSocket connection established at {datetime.now()} for session: {session_id}, user: {session_info.username}")
 
-    session_info["current_prompt"] = None
-    session_info["frame_buffer"].clear()
+    session_info.current_prompt = None
+    session_info.frame_buffer.clear()
     inference_task = asyncio.create_task(inference_worker(websocket, session_info))
 
     try:
@@ -124,14 +123,14 @@ async def websocket_frames(websocket: WebSocket):
             if not prompt or not frame_data:
                 continue
 
-            if session_info["current_prompt"] != prompt:
-                session_info["frame_buffer"].clear()
-                session_info["current_prompt"] = prompt
+            if session_info.current_prompt != prompt:
+                session_info.frame_buffer.clear()
+                session_info.current_prompt = prompt
             
-            session_info["frame_buffer"].append(frame_data)
+            session_info.frame_buffer.append(frame_data)
             
-            if len(session_info["frame_buffer"]) > FRAME_BUFFER_SIZE:
-                del session_info["frame_buffer"][:-FRAME_BUFFER_SIZE]
+            if len(session_info.frame_buffer) > FRAME_BUFFER_SIZE:
+                del session_info.frame_buffer[:-FRAME_BUFFER_SIZE]
             
     except Exception as e:
         logger.error(f"WebSocket error: {e}")
@@ -144,13 +143,13 @@ async def websocket_frames(websocket: WebSocket):
     
     logger.info(f"WebSocket connection closed at {datetime.now()}")
 
-async def inference_worker(websocket: WebSocket, session_info: dict):
+async def inference_worker(websocket: WebSocket, session_info: Session):
     while websocket.client_state.value == 1:
         try:
             await asyncio.sleep(1)
                 
-            frames_to_process = session_info["frame_buffer"][-FRAMES_PER_INFERENCE:]
-            current_prompt = session_info["current_prompt"]
+            frames_to_process = session_info.frame_buffer[-FRAMES_PER_INFERENCE:]
+            current_prompt = session_info.current_prompt
             
             if not current_prompt:
                 logger.warning("weird: no prompt")
@@ -158,17 +157,16 @@ async def inference_worker(websocket: WebSocket, session_info: dict):
 
             def handle_frame_result(task):
                 try:
-                    processed, ai_response = task.result()
-                    if not processed or websocket.client_state.value != 1:
+                    result = task.result()
+                    if not result.should_process or websocket.client_state.value != 1:
                         return
                         
-                    confidence, reason, start_time = ai_response
-                    elapsed_time = (datetime.now() - start_time).total_seconds()
-                    logger.info(f"processing_time={elapsed_time:.2f}s, confidence={confidence}, reason={reason}")
+                    elapsed_time = (datetime.now().timestamp() - result.start_time)
+                    logger.info(f"processing_time={elapsed_time:.2f}s, confidence={result.score}, reason={result.reason}")
 
                     response_data = {
-                        "confidence": confidence,
-                        "reason": reason
+                        "confidence": result.score,
+                        "reason": result.reason
                     }
                     packed_response = msgpack.packb(response_data)
                     if websocket.client_state.value == 1:

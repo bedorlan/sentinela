@@ -1,8 +1,9 @@
 from . import util
 from .inference_engine import InferenceEngine
+from .model.inference_response import InferenceResponse
 from datetime import datetime
 from openai import AsyncOpenAI
-from typing import Tuple, Optional, List
+from typing import List
 import base64
 import logging
 import os
@@ -34,22 +35,25 @@ class OpenRouterInference(InferenceEngine):
             logger.error("Application cannot function without OpenRouter API key. Exiting.")
             exit(1)
 
-    async def process_frames(self, frames_data: List[bytes], prompt: str) -> Tuple[bool, Optional[str]]:
+    async def process_frames(self, frames_data: List[bytes], prompt: str) -> InferenceResponse:
         """
         Process multiple frames for AI analysis.
         
         Returns:
-            Tuple[bool, Optional[str]]: (should_process, ai_response)
-            - If should_process is False, the frames were dropped
-            - If should_process is True, ai_response contains the analysis result
+            InferenceResponse: Response containing processing decision and metadata
         """
-        start_time = datetime.now()
+        start_time = datetime.now().timestamp()
         ai_response = await self._analyze_frame_with_ai(frames_data, prompt)
         if not ai_response:
-            return False, None
+            return InferenceResponse(should_process=False)
 
         score, reason = util.extract_score_and_reason(ai_response)            
-        return True, (score, reason, start_time)
+        return InferenceResponse(
+            should_process=True,
+            score=score,
+            reason=reason,
+            start_time=start_time
+        )
 
     async def _analyze_frame_with_ai(self, frames: list, prompt: str) -> str:
         """Internal function to analyze frames using OpenRouter"""
