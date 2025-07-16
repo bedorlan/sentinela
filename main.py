@@ -165,8 +165,7 @@ async def inference_worker(websocket: WebSocket, session_info: dict):
                     confidence, reason, start_time = ai_response
                     elapsed_time = (datetime.now() - start_time).total_seconds()
                     logger.info(f"processing_time={elapsed_time:.2f}s, confidence={confidence}, reason={reason}")
-                    if elapsed_time > 1.0:
-                        logger.warning(f"High processing time {elapsed_time:.2f}s, consider lowering FRAMES_PER_INFERENCE for better performance")
+
                     response_data = {
                         "confidence": confidence,
                         "reason": reason
