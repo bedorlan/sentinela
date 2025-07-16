@@ -40,6 +40,7 @@ export const initialState = {
   consecutiveDetections: 0,
   currentDemo: null,
   currentLanguage: "en",
+  previousLanguage: "en",
   demoMode: false,
   demos: [],
   detectionState: DetectionState.IDLE,
@@ -133,6 +134,7 @@ export function appReducer(draft, action) {
 
     case Events.onLanguageChange:
       if (draft.detectionState === DetectionState.IDLE) {
+        draft.previousLanguage = draft.currentLanguage;
         draft.currentLanguage = action.payload;
       }
       break;
@@ -146,7 +148,15 @@ export function appReducer(draft, action) {
       break;
 
     case Events.onLanguageLoadSuccess:
-      draft.texts = action.payload.texts;
+      const isTranslationFailure = draft.currentLanguage !== "en" && 
+        action.payload.texts.tagline === "Tell me what to watch for in plain words!";
+      
+      if (isTranslationFailure) {
+        draft.currentLanguage = draft.previousLanguage;
+        console.error("Translation failed: received English texts for non-English language");
+      } else {
+        draft.texts = action.payload.texts;
+      }
       draft.isLoadingTranslation = false;
       break;
 
