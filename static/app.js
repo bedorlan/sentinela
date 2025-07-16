@@ -159,12 +159,19 @@ function MainUI({
               {texts.tagline}
             </p>
 
-            <div className="absolute right-0 top-1/2 transform -translate-y-1/2">
+            <div className="absolute right-0 top-1/2 transform -translate-y-1/2 lg:block hidden">
               <LanguageSwitcher
                 currentLanguage={currentLanguage}
                 onLanguageSwitch={onLanguageSwitch}
               />
             </div>
+          </div>
+
+          <div className="lg:hidden flex justify-center mt-4">
+            <LanguageSwitcher
+              currentLanguage={currentLanguage}
+              onLanguageSwitch={onLanguageSwitch}
+            />
           </div>
         </div>
 
