@@ -14,28 +14,10 @@ import uuid
 
 logger = logging.getLogger(__name__)
 
-FPS = 3
-FRAMES_TO_PROCESS = 2 * FPS
-FRAME_BUFFER_SIZE = 3 * FPS
-
 app = FastAPI()
 security = HTTPBasic()
 sessions = {}
 inference_engine: InferenceEngine = None
-
-if os.getenv("OPENROUTER_API_KEY"):
-    from src.openrouter_inference import OpenRouterInference
-    inference_engine = OpenRouterInference()
-elif os.getenv("GOOGLE_API_KEY"):
-    from src.google_ai_studio_inference import GoogleAIStudioInference
-    inference_engine = GoogleAIStudioInference()
-elif os.getenv("HF_TOKEN"):
-    from src.gemma_local_inference import GemmaLocalInference
-    inference_engine = GemmaLocalInference()
-else:
-    logger.error("No API key environment variable is set")
-    logger.error("Please set OPENROUTER_API_KEY, GOOGLE_API_KEY, or HF_TOKEN to use the appropriate inference engine")
-    exit(1)
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -87,19 +69,16 @@ async def get_translations(language: str, username: str = Depends(authenticate))
             base_texts = json.load(f)
 
         if language.lower().startswith('en'):
-
             return {"translations": base_texts}
         
         if not hasattr(inference_engine, 'translate'):
             raise HTTPException(status_code=501, detail="Translation not supported")
         
         keys = list(base_texts.keys())
-        values = list(base_texts.values())
-        
+        values = list(base_texts.values())        
         translated_values = await inference_engine.translate(values, language)
-        
+
         translated_texts = dict(zip(keys, translated_values))
-        
         return {"translations": translated_texts}
         
     except FileNotFoundError:
@@ -107,6 +86,10 @@ async def get_translations(language: str, username: str = Depends(authenticate))
     except Exception as e:
         logger.error(f"Translation error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Translation failed: {str(e)}")
+    
+FPS = 3
+FRAMES_TO_PROCESS = 2 * FPS
+FRAME_BUFFER_SIZE = 3 * FPS
 
 @app.websocket("/ws/frames")
 async def websocket_frames(websocket: WebSocket):
@@ -200,6 +183,27 @@ async def inference_worker(websocket: WebSocket, session_info: dict):
         except Exception as e:
             logger.error(f"Inference worker error: {e}")
 
+def validate_environment():
+    if not os.getenv("GUEST_PASSWORD"):
+        logger.error("GUEST_PASSWORD environment variable is not set")
+        logger.error("Please set GUEST_PASSWORD to enable authentication")
+        exit(1)
+
+    global inference_engine
+    if os.getenv("OPENROUTER_API_KEY"):
+        from src.openrouter_inference import OpenRouterInference
+        inference_engine = OpenRouterInference()
+    elif os.getenv("GOOGLE_API_KEY"):
+        from src.google_ai_studio_inference import GoogleAIStudioInference
+        inference_engine = GoogleAIStudioInference()
+    elif os.getenv("HF_TOKEN"):
+        from src.gemma_local_inference import GemmaLocalInference
+        inference_engine = GemmaLocalInference()
+    else:
+        logger.error("No API key environment variable is set")
+        logger.error("Please set OPENROUTER_API_KEY or HF_TOKEN to use the appropriate inference engine")
+        exit(1)
+
 def setup_logging():
     info_handler = logging.StreamHandler(sys.stdout)
     info_handler.setLevel(logging.INFO)
@@ -212,6 +216,7 @@ def setup_logging():
     logging.getLogger("httpx").setLevel(logging.WARNING)
 
 if __name__ == "__main__":
+    validate_environment()
     setup_logging()
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000, log_config=None)

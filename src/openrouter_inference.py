@@ -1,11 +1,10 @@
+from . import util
+from .inference_engine import InferenceEngine
 from openai import AsyncOpenAI
 from typing import Tuple, Optional, List
 import base64
 import logging
 import os
-
-from . import util
-from .inference_engine import InferenceEngine
 
 logger = logging.getLogger(__name__)
 

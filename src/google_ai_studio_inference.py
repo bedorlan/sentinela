@@ -1,10 +1,9 @@
+from . import util
+from .inference_engine import InferenceEngine
 from typing import Tuple, Optional, List
 import google.generativeai as genai
 import logging
 import os
-
-from . import util
-from .inference_engine import InferenceEngine
 
 logger = logging.getLogger(__name__)
 
