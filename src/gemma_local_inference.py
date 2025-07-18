@@ -1,22 +1,25 @@
+from . import util
+from .inference_engine import InferenceEngine
+from .model.inference_response import InferenceResponse
+from datetime import datetime
 from huggingface_hub import login
 from PIL import Image
 from transformers import pipeline
-from typing import Tuple, Optional, List
+from typing import List
 import asyncio
 import io
 import logging
 import os
 import torch
 
-from . import util
-from .inference_engine import InferenceEngine
+MAX_CONCURRENT_INFERENCES = 1
 
 logger = logging.getLogger(__name__)
 
 
 class GemmaLocalInference(InferenceEngine):
     def __init__(self):
-        self.analysis_in_progress = False
+        self.active_inferences = 0
         self.pipe = None
         self.model_name = "google/gemma-3n-e4b-it"
         self._initialize_model()
@@ -51,21 +54,27 @@ class GemmaLocalInference(InferenceEngine):
             logger.error("Application cannot function without local model. Exiting.")
             exit(1)
     
-    async def process_frames(self, frames_data: List[bytes], prompt: str) -> Tuple[bool, Optional[str]]:
-        if self.analysis_in_progress:
-            return False, None
+    async def process_frames(self, frames_data: List[bytes], prompt: str) -> InferenceResponse:
+        if self.active_inferences >= MAX_CONCURRENT_INFERENCES:
+            return InferenceResponse(should_process=False)
         
-        self.analysis_in_progress = True
+        self.active_inferences += 1
         
         try:
+            start_time = datetime.now().timestamp()
             ai_response = await self._analyze_frames_with_model(frames_data, prompt)
             if not ai_response:
-                return False, None
+                return InferenceResponse(should_process=False)
                 
             score, reason = util.extract_score_and_reason(ai_response)
-            return True, (score, reason)
+            return InferenceResponse(
+                should_process=True,
+                score=score,
+                reason=reason,
+                start_time=start_time
+            )
         finally:
-            self.analysis_in_progress = False
+            self.active_inferences -= 1
     
     async def _analyze_frames_with_model(self, frames_data: List[bytes], prompt: str) -> str:
         try:

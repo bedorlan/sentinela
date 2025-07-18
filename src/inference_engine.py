@@ -1,10 +1,11 @@
-from typing import Protocol, Tuple, Optional, List
+from .model.inference_response import InferenceResponse
+from typing import Protocol, List
 
 
 class InferenceEngine(Protocol):
     """Protocol for inference engines that process frames."""
     
-    async def process_frames(self, frames_data: List[bytes], prompt: str) -> Tuple[bool, Optional[str]]:
+    async def process_frames(self, frames_data: List[bytes], prompt: str) -> InferenceResponse:
         """
         Process multiple frames for inference.
         
@@ -13,8 +14,6 @@ class InferenceEngine(Protocol):
             prompt: The prompt/query for analysis
             
         Returns:
-            Tuple[bool, Optional[str]]: (should_process, result)
-            - If should_process is False, the frames were dropped
-            - If should_process is True, result contains the inference result
+            InferenceResponse: Response containing processing decision and metadata
         """
         ...
