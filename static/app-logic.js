@@ -149,15 +149,7 @@ export function appReducer(draft, action) {
       break;
 
     case Events.onLanguageLoadSuccess:
-      const isTranslationFailure = draft.currentLanguage !== "en" && 
-        action.payload.texts.tagline === "Tell me what to watch for in plain words!";
-      
-      if (isTranslationFailure) {
-        draft.currentLanguage = draft.previousLanguage;
-        console.error("Translation failed: received English texts for non-English language");
-      } else {
-        draft.texts = action.payload.texts;
-      }
+      draft.texts = action.payload.texts;
       draft.isLoadingTranslation = false;
       break;
 

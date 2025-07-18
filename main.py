@@ -83,7 +83,7 @@ async def get_translations(language: str, username: str = Depends(authenticate))
             return {"translations": translated_texts}
         except Exception as translation_error:
             logger.error(f"Translation failed for language {language}: {str(translation_error)}")
-            raise HTTPException(status_code=422, detail=f"Translation failed: {str(translation_error)}")
+            raise HTTPException(status_code=500, detail=f"Translation failed: {str(translation_error)}")
         
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="Base texts file not found")
