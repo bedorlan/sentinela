@@ -65,7 +65,7 @@ def create_translation_prompt(texts: str, locale: str) -> str:
     - Use exactly {num_texts} sections separated by |
     - Do not add extra text before or after
     """
-    return translation_prompt
+    return re.sub(r'\n\s+', '\n', translation_prompt)
 
 
 def resize_frame(frame_data: bytes, max_size: int = 768) -> bytes:

@@ -141,6 +141,7 @@ export function appReducer(draft, action) {
 
     case Events.onLanguageLoadError:
       draft.isLoadingTranslation = false;
+      draft.currentLanguage = draft.previousLanguage;
       break;
 
     case Events.onLanguageLoadStart:
@@ -275,7 +276,9 @@ export function useLanguageLoader(state, dispatch) {
 
         const response = await fetch(`/translations/${currentLanguage}`);
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          const errorData = await response.json().catch(() => ({}));
+          const errorMessage = errorData.detail || `HTTP error! status: ${response.status}`;
+          throw new Error(errorMessage);
         }
 
         const data = await response.json();
@@ -285,7 +288,10 @@ export function useLanguageLoader(state, dispatch) {
         });
       } catch (error) {
         console.error("Error loading translations:", error);
-        dispatch({ type: Events.onLanguageLoadError });
+        dispatch({ 
+          type: Events.onLanguageLoadError,
+          payload: { error: error.message }
+        });
       }
     };
 
