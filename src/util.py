@@ -49,22 +49,24 @@ def create_translation_prompt(texts: str, locale: str) -> str:
     """
     Create a standardized translation prompt for AI models.
     """
+    num_texts = len(texts.split("|"))
     translation_prompt = f"""
-    You are a professional translator. Translate the following texts to {locale} language.
-            
-    IMPORTANT RULES:
-    1. Preserve all emojis exactly as they are
-    2. Maintain the same tone and style as the original
-    3. Return ONLY the translated texts separated by |
-    4. Keep the same order as the input
-    5. Do not add any explanations or additional text
+    Translate these {num_texts} texts to {locale}. 
+    Return exactly {num_texts} translations separated by | character.
 
-    Input texts:
+    Input ({num_texts} texts):
     {texts}
 
-    Return the translated texts separated by |:
+    Output format: translation1|translation2|translation3|...
+
+    Rules:
+    - Keep all emojis unchanged
+    - Return ONLY the translations, no explanations
+    - Use exactly {num_texts} sections separated by |
+    - Do not add extra text before or after
     """
     return re.sub(r'\n\s+', '\n', translation_prompt)
+
 
 def resize_frame(frame_data: bytes, max_size: int = 768) -> bytes:
     """Resize frame so max width or height is max_size while maintaining aspect ratio"""

@@ -135,12 +135,13 @@ class OpenRouterInference(InferenceEngine):
             translated_texts = [text.strip() for text in cleaned_response.split("|")]
             
             if len(translated_texts) != len(texts):
-                logger.warning(f"Translation count mismatch: expected {len(texts)}, got {len(translated_texts)}")
-                return texts
+                error_msg = f"Translation count mismatch: expected {len(texts)}, got {len(translated_texts)}"
+                logger.error(error_msg)
+                raise Exception(error_msg)
             
             self._translation_cache[cache_key] = translated_texts
             return translated_texts
             
         except Exception as e:
             logger.error(f"Translation error: {str(e)}")
-            return texts
+            raise Exception(f"Translation failed: {str(e)}")

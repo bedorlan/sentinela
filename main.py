@@ -74,17 +74,22 @@ async def get_translations(language: str, username: str = Depends(authenticate))
             base_texts = json.load(f)
 
         if language.lower().startswith('en'):
+
             return {"translations": base_texts}
         
         if not hasattr(inference_engine, 'translate'):
             raise HTTPException(status_code=501, detail="Translation not supported")
         
         keys = list(base_texts.keys())
-        values = list(base_texts.values())        
-        translated_values = await inference_engine.translate(values, language)
-
-        translated_texts = dict(zip(keys, translated_values))
-        return {"translations": translated_texts}
+        values = list(base_texts.values())
+        
+        try:
+            translated_values = await inference_engine.translate(values, language)
+            translated_texts = dict(zip(keys, translated_values))
+            return {"translations": translated_texts}
+        except Exception as translation_error:
+            logger.error(f"Translation failed for language {language}: {str(translation_error)}")
+            raise HTTPException(status_code=500, detail=f"Translation failed: {str(translation_error)}")
         
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail="Base texts file not found")
