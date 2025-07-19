@@ -212,8 +212,33 @@ def setup_logging():
     logging.basicConfig(level=logging.INFO, handlers=[info_handler, warning_handler])
     logging.getLogger("httpx").setLevel(logging.WARNING)
 
+PORT = 8000
+
+def launch_browser():
+    import webbrowser
+    logger.info("launching webbrowser")
+    browser_name = 'google-chrome'
+    try:
+        browser = webbrowser.get(browser_name)
+        browser.remote_args = [
+            "--app=%s",
+            "--new-window",
+            "--disable-background-timer-throttling",
+            "--disable-renderer-backgrounding",
+            "--autoplay-policy=no-user-gesture-required",
+        ]
+        browser.open(f'http://localhost:{PORT}')
+    except Exception as e:
+        logger.error(f"{e}\nunable to open: {browser_name}")
+
 if __name__ == "__main__":
     validate_environment()
     setup_logging()
+    
+    if not os.getenv("SENTINELA_SERVER_MODE"):
+        @app.on_event("startup")
+        def startup_event():
+            launch_browser()
+    
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000, log_config=None)
+    uvicorn.run(app, host="0.0.0.0", port=PORT, log_config=None)
