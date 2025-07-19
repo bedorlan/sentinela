@@ -6,12 +6,14 @@ import {
   DetectionState,
   Events,
   initialState,
+  useCloseWarning,
   useDetectionReset,
   useDetectionSound,
   useLanguageLoader,
   useLoadDemos,
   useRotatingPlaceholder,
   useVideoDetection,
+  useWatchingDuration,
 } from "./static/app-logic.js";
 
 function App() {
@@ -33,6 +35,8 @@ function App() {
   } = state;
 
   const { placeholderText } = useRotatingPlaceholder(state, dispatch);
+  const watchingDuration = useWatchingDuration(state);
+  useCloseWarning(state);
   useDetectionReset(state, dispatch);
   useDetectionSound(state, dispatch);
   useLanguageLoader(state, dispatch);
@@ -61,6 +65,7 @@ function App() {
       texts={texts}
       isLoadingTranslation={isLoadingTranslation}
       currentLanguage={currentLanguage}
+      watchingDuration={watchingDuration}
       onDemoSelect={(demo) => {
         dispatch({ type: Events.onDemoStart, payload: { demo } });
         console.log(`Starting demo: ${demo.demo_name}`);
@@ -115,6 +120,7 @@ function MainUI({
   prompt,
   reason,
   texts,
+  watchingDuration,
   // events
   onDemoSelect,
   onHandleFrame,
@@ -206,6 +212,15 @@ function MainUI({
                 isRecording={isRecording}
                 onFrame={onHandleFrame}
               />
+
+              {/* Watching duration display */}
+              {watchingDuration && (
+                <div className="absolute top-4 left-4 bg-black/40 backdrop-blur-sm rounded-full px-3 py-1 pointer-events-none">
+                  <p className="text-xs font-mono text-white/70">
+                    {texts.watching_for} {watchingDuration}
+                  </p>
+                </div>
+              )}
 
               {isWatching && (
                 <div className="absolute inset-0 pointer-events-none">
@@ -537,38 +552,46 @@ function VideoCamera({
   const cameraRef = React.useRef(null);
   const canvasRef = React.useRef(null);
   const captureIntervalRef = React.useRef(null);
+  const imageCaptureRef = React.useRef(null);
 
   useEffect(() => {
-    if (demoMode && currentDemo) {
-      if (cameraRef.current) {
-        cameraRef.current.src = `/static/demos/${currentDemo.file}`;
-        cameraRef.current.loop = false;
-        cameraRef.current.muted = true;
-        cameraRef.current
-          .play()
-          .catch((err) => console.error("Error playing demo video:", err));
+    const setupImageCapture = async () => {
+      if (demoMode && currentDemo) {
+        if (cameraRef.current) {
+          cameraRef.current.src = `/static/demos/${currentDemo.file}`;
+          cameraRef.current.loop = false;
+          cameraRef.current.muted = true;
 
-        cameraRef.current.scrollIntoView({
-          behavior: "smooth",
-          block: "center",
-        });
-      }
-    } else {
-      const startWebcam = async () => {
+          await cameraRef.current
+            .play()
+            .catch((err) => console.error("Error playing demo video:", err));
+
+          cameraRef.current.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+          });
+
+          const stream = cameraRef.current.captureStream();
+          const videoTrack = stream.getVideoTracks()[0];
+          imageCaptureRef.current = new ImageCapture(videoTrack);
+        }
+      } else {
         try {
           const stream = await navigator.mediaDevices.getUserMedia({
             video: true,
           });
           if (cameraRef.current) {
             cameraRef.current.srcObject = stream;
+            const videoTrack = stream.getVideoTracks()[0];
+            imageCaptureRef.current = new ImageCapture(videoTrack);
           }
         } catch (err) {
           console.error("Error accessing webcam:", err);
         }
-      };
+      }
+    };
 
-      startWebcam();
-    }
+    setupImageCapture();
 
     return () => {
       if (cameraRef.current) {
@@ -579,37 +602,38 @@ function VideoCamera({
         cameraRef.current.srcObject = null;
         cameraRef.current.src = "";
       }
+      imageCaptureRef.current = null;
     };
   }, [demoMode, currentDemo]);
 
-  const captureFrame = useCallback(() => {
-    if (cameraRef.current && canvasRef.current) {
-      const video = cameraRef.current;
-      const canvas = canvasRef.current;
-      const context = canvas.getContext("2d");
+  const captureFrame = useCallback(async () => {
+    if (imageCaptureRef.current && canvasRef.current) {
+      try {
+        const imageBitmap = await imageCaptureRef.current.grabFrame();
 
-      const width = demoMode
-        ? video.videoWidth || video.clientWidth
-        : video.videoWidth;
-      const height = demoMode
-        ? video.videoHeight || video.clientHeight
-        : video.videoHeight;
+        const canvas = canvasRef.current;
+        const context = canvas.getContext("2d");
 
-      canvas.width = width;
-      canvas.height = height;
-      context.drawImage(video, 0, 0);
+        canvas.width = imageBitmap.width;
+        canvas.height = imageBitmap.height;
+        context.drawImage(imageBitmap, 0, 0);
 
-      canvas.toBlob(
-        async (blob) => {
-          if (blob && onFrame) {
-            onFrame(blob);
-          }
-        },
-        "image/jpeg",
-        imageQuality,
-      );
+        canvas.toBlob(
+          async (blob) => {
+            if (blob && onFrame) {
+              onFrame(blob);
+            }
+          },
+          "image/jpeg",
+          imageQuality,
+        );
+
+        imageBitmap.close();
+      } catch (err) {
+        console.error("Error capturing frame:", err);
+      }
     }
-  }, [demoMode, imageQuality, onFrame]);
+  }, [imageQuality, onFrame]);
 
   useEffect(() => {
     if (isRecording) {

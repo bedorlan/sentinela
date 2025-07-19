@@ -28,5 +28,10 @@
   "example_bird": "if a bird appears 🦅",
   "alert_me": "Alert me",
   "loading_translation": "Translating to your language...",
-  "loading_please_wait": "Please wait while we prepare everything for you"
+  "loading_please_wait": "Please wait while we prepare everything for you",
+  "watching_for": "Watching for:",
+  "days": "days",
+  "hours": "hours",
+  "minutes": "minutes",
+  "seconds": "seconds"
 }

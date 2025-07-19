@@ -59,6 +59,7 @@ export const initialState = {
   prompt: "",
   reason: "",
   texts: {},
+  watchingStartTime: null,
 };
 
 export function appReducer(draft, action) {
@@ -85,6 +86,7 @@ export function appReducer(draft, action) {
       draft.confidence = 0;
       draft.consecutiveDetections = 0;
       draft.reason = "";
+      draft.watchingStartTime = Date.now();
       break;
 
     case Events.onDemosLoad:
@@ -177,6 +179,7 @@ export function appReducer(draft, action) {
       draft.consecutiveDetections = 0;
       draft.reason = "";
       draft.lastVideoFrame = null;
+      draft.watchingStartTime = Date.now();
       break;
 
     case Events.onWatchingStop:
@@ -255,6 +258,30 @@ export function useDetectionReset(state, dispatch) {
 
       return () => clearTimeout(timer);
     }
+  }, [detectionState]);
+}
+
+export function useCloseWarning(state) {
+  const { detectionState } = state;
+
+  useEffect(() => {
+    const isWatching =
+      detectionState === DetectionState.WATCHING ||
+      detectionState === DetectionState.DETECTED;
+
+    const handleBeforeUnload = (e) => {
+      e.preventDefault();
+      e.returnValue = "";
+      return "";
+    };
+
+    if (isWatching) {
+      window.addEventListener("beforeunload", handleBeforeUnload);
+    }
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
   }, [detectionState]);
 }
 
@@ -360,4 +387,55 @@ export function useVideoDetection(state, dispatch) {
   );
 
   return {};
+}
+
+export function useWatchingDuration(state) {
+  const [watchingDuration, setWatchingDuration] = React.useState("");
+  const { watchingStartTime, detectionState, texts } = state;
+
+  useEffect(() => {
+    if (!watchingStartTime) {
+      setWatchingDuration("");
+      return;
+    }
+
+    const formatDuration = (milliseconds) => {
+      const seconds = Math.floor(milliseconds / 1000);
+      const minutes = Math.floor(seconds / 60);
+      const hours = Math.floor(minutes / 60);
+      const days = Math.floor(hours / 24);
+
+      if (days > 0) {
+        const remainingHours = hours % 24;
+        return `${days} ${texts.days}, ${remainingHours} ${texts.hours}`;
+      } else if (hours > 0) {
+        const remainingMinutes = minutes % 60;
+        return `${hours} ${texts.hours}, ${remainingMinutes} ${texts.minutes}`;
+      } else if (minutes > 0) {
+        const remainingSeconds = seconds % 60;
+        return `${minutes} ${texts.minutes}, ${remainingSeconds} ${texts.seconds}`;
+      } else {
+        return `${seconds} ${texts.seconds}`;
+      }
+    };
+
+    const updateDuration = () => {
+      const duration = Date.now() - watchingStartTime;
+      setWatchingDuration(formatDuration(duration));
+    };
+
+    updateDuration();
+
+    if (
+      detectionState !== DetectionState.WATCHING &&
+      detectionState !== DetectionState.DETECTED
+    ) {
+      return;
+    }
+
+    const interval = setInterval(updateDuration, 1000);
+    return () => clearInterval(interval);
+  }, [watchingStartTime, detectionState, texts]);
+
+  return watchingDuration;
 }
