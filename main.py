@@ -11,6 +11,7 @@ import logging
 import msgpack
 import os
 import sys
+import time
 import uuid
 
 logger = logging.getLogger(__name__)
@@ -20,9 +21,14 @@ security = HTTPBasic()
 sessions: dict[str, Session] = {}
 inference_engine: InferenceEngine = None
 
+is_server_mode = os.getenv("SENTINELA_SERVER_MODE") == '1'
+
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 def authenticate(credentials: HTTPBasicCredentials = Depends(security)):
+    if not is_server_mode:
+        return "local_user"
+
     guest_password = os.getenv("GUEST_PASSWORD")
     if not guest_password:
         raise HTTPException(status_code=500, detail="Authentication not configured")
@@ -181,7 +187,7 @@ async def inference_worker(websocket: WebSocket, session_info: Session):
             logger.error(f"Inference worker error: {e}")
 
 def validate_environment():
-    if not os.getenv("GUEST_PASSWORD"):
+    if is_server_mode and not os.getenv("GUEST_PASSWORD"):
         logger.error("GUEST_PASSWORD environment variable is not set")
         logger.error("Please set GUEST_PASSWORD to enable authentication")
         exit(1)
@@ -227,7 +233,7 @@ def launch_browser():
             "--disable-renderer-backgrounding",
             "--autoplay-policy=no-user-gesture-required",
         ]
-        browser.open(f'http://localhost:{PORT}')
+        browser.open(f'http://localhost:{PORT}?t={int(time.time())}')
     except Exception as e:
         logger.error(f"{e}\nunable to open: {browser_name}")
 
@@ -235,9 +241,10 @@ if __name__ == "__main__":
     validate_environment()
     setup_logging()
     
-    if not os.getenv("SENTINELA_SERVER_MODE"):
+    if not is_server_mode:
         @app.on_event("startup")
         def startup_event():
+            # TODO: sometimes browser still launches before server
             launch_browser()
     
     import uvicorn
