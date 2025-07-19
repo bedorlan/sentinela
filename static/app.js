@@ -6,6 +6,7 @@ import {
   DetectionState,
   Events,
   initialState,
+  useCloseWarning,
   useDetectionReset,
   useDetectionSound,
   useLanguageLoader,
@@ -33,6 +34,7 @@ function App() {
   } = state;
 
   const { placeholderText } = useRotatingPlaceholder(state, dispatch);
+  useCloseWarning(state);
   useDetectionReset(state, dispatch);
   useDetectionSound(state, dispatch);
   useLanguageLoader(state, dispatch);
