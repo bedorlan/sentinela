@@ -13,6 +13,7 @@ import {
   useLoadDemos,
   useRotatingPlaceholder,
   useVideoDetection,
+  useWatchingDuration,
 } from "./static/app-logic.js";
 
 function App() {
@@ -34,6 +35,7 @@ function App() {
   } = state;
 
   const { placeholderText } = useRotatingPlaceholder(state, dispatch);
+  const watchingDuration = useWatchingDuration(state);
   useCloseWarning(state);
   useDetectionReset(state, dispatch);
   useDetectionSound(state, dispatch);
@@ -63,6 +65,7 @@ function App() {
       texts={texts}
       isLoadingTranslation={isLoadingTranslation}
       currentLanguage={currentLanguage}
+      watchingDuration={watchingDuration}
       onDemoSelect={(demo) => {
         dispatch({ type: Events.onDemoStart, payload: { demo } });
         console.log(`Starting demo: ${demo.demo_name}`);
@@ -117,6 +120,7 @@ function MainUI({
   prompt,
   reason,
   texts,
+  watchingDuration,
   // events
   onDemoSelect,
   onHandleFrame,
@@ -199,6 +203,15 @@ function MainUI({
                 isRecording={isRecording}
                 onFrame={onHandleFrame}
               />
+
+              {/* Watching duration display */}
+              {watchingDuration && (
+                <div className="absolute top-4 left-4 bg-black/40 backdrop-blur-sm rounded-full px-3 py-1 pointer-events-none">
+                  <p className="text-xs font-mono text-white/70">
+                    {texts.watching_for} {watchingDuration}
+                  </p>
+                </div>
+              )}
 
               {isWatching && (
                 <div className="absolute inset-0 pointer-events-none">
