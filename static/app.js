@@ -12,7 +12,6 @@ import {
   useLanguageLoader,
   useLoadDemos,
   useRotatingPlaceholder,
-  useTranslationPrefetch,
   useVideoDetection,
   useWatchingDuration,
 } from "./static/app-logic.js";
@@ -42,7 +41,6 @@ function App() {
   useDetectionSound(state, dispatch);
   useLanguageLoader(state, dispatch);
   useLoadDemos(state, dispatch);
-  useTranslationPrefetch(state);
   useVideoDetection(state, dispatch);
 
   const isWatching =
