@@ -285,16 +285,43 @@ export function useCloseWarning(state) {
   }, [detectionState]);
 }
 
-let activeTranslationPromise = null;
-
 export function useLanguageLoader(state, dispatch) {
   const { currentLanguage } = state;
+  const activeTranslationPromiseRef = React.useRef(null);
+  const prefetchPromisesRef = React.useRef({});
+
+  useEffect(() => {
+    const browserLanguage = navigator.language;
+    const languageCode = browserLanguage.split("-")[0];
+
+    if (
+      languageCode !== "en" &&
+      currentLanguage === "en" &&
+      !prefetchPromisesRef.current[languageCode]
+    ) {
+      const prefetchTranslation = async () => {
+        try {
+          const response = await fetch(`/translations/${languageCode}`);
+          if (!response.ok) {
+            throw new Error(`Prefetch failed: ${response.status}`);
+          }
+          const data = await response.json();
+          prefetchPromisesRef.current[languageCode] = Promise.resolve(data);
+        } catch (error) {
+          console.error("Translation prefetch error:", error);
+          prefetchPromisesRef.current[languageCode] = null;
+        }
+      };
+
+      prefetchPromisesRef.current[languageCode] = prefetchTranslation();
+    }
+  }, []);
 
   useEffect(() => {
     const loadTexts = async () => {
-      if (activeTranslationPromise) {
+      if (activeTranslationPromiseRef.current) {
         try {
-          const data = await activeTranslationPromise;
+          const data = await activeTranslationPromiseRef.current;
           dispatch({
             type: Events.onLanguageLoadSuccess,
             payload: { texts: data.translations },
@@ -302,30 +329,50 @@ export function useLanguageLoader(state, dispatch) {
           return;
         } catch (error) {
           console.error("Error loading translations:", error);
-          dispatch({ 
+          dispatch({
             type: Events.onLanguageLoadError,
-            payload: { error: error.message }
+            payload: { error: error.message },
           });
           return;
+        }
+      }
+
+      if (prefetchPromisesRef.current[currentLanguage]) {
+        try {
+          dispatch({ type: Events.onLanguageLoadStart });
+          const prefetchedData = await prefetchPromisesRef.current[
+            currentLanguage
+          ];
+          if (prefetchedData) {
+            dispatch({
+              type: Events.onLanguageLoadSuccess,
+              payload: { texts: prefetchedData.translations },
+            });
+            return;
+          }
+        } catch (error) {
+          console.error("Error using prefetched translation:", error);
         }
       }
 
       try {
         dispatch({ type: Events.onLanguageLoadStart });
 
-        const translationPromise = fetch(`/translations/${currentLanguage}`)
-          .then(async (response) => {
-            if (!response.ok) {
-              const errorData = await response.json().catch(() => ({}));
-              const errorMessage = errorData.detail || `HTTP error! status: ${response.status}`;
-              throw new Error(errorMessage);
-            }
-            return response.json();
-          });
+        const translationPromise = fetch(
+          `/translations/${currentLanguage}`,
+        ).then(async (response) => {
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            const errorMessage =
+              errorData.detail || `HTTP error! status: ${response.status}`;
+            throw new Error(errorMessage);
+          }
+          return response.json();
+        });
 
-        activeTranslationPromise = translationPromise;
+        activeTranslationPromiseRef.current = translationPromise;
         const data = await translationPromise;
-        activeTranslationPromise = null;
+        activeTranslationPromiseRef.current = null;
 
         dispatch({
           type: Events.onLanguageLoadSuccess,
@@ -333,10 +380,10 @@ export function useLanguageLoader(state, dispatch) {
         });
       } catch (error) {
         console.error("Error loading translations:", error);
-        activeTranslationPromise = null;
-        dispatch({ 
+        activeTranslationPromiseRef.current = null;
+        dispatch({
           type: Events.onLanguageLoadError,
-          payload: { error: error.message }
+          payload: { error: error.message },
         });
       }
     };
@@ -465,29 +512,4 @@ export function useWatchingDuration(state) {
   }, [watchingStartTime, detectionState, texts]);
 
   return watchingDuration;
-}
-
-export function useTranslationPrefetch(state) {
-  const { currentLanguage } = state;
-
-  useEffect(() => {
-    const browserLanguage = navigator.language;
-    const languageCode = browserLanguage.split("-")[0];
-    
-    if (languageCode !== "en" && currentLanguage === "en") {
-      const prefetchTranslation = async () => {
-        try {
-          const response = await fetch(`/translations/${languageCode}`);
-          if (!response.ok) {
-            throw new Error(`Prefetch failed: ${response.status}`);
-          }
-          await response.json();
-        } catch (error) {
-          console.error("Translation prefetch error:", error);
-        }
-      };
-      
-      prefetchTranslation();
-    }
-  }, []);
 }
