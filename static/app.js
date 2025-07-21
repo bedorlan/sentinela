@@ -131,6 +131,8 @@ function MainUI({
   onStartWatching,
   onStopWatching,
 }) {
+  const [isLogCollapsed, setIsLogCollapsed] = React.useState(true);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 text-white overflow-hidden relative">
       {/* Animated background stars */}
@@ -151,11 +153,11 @@ function MainUI({
         ))}
       </div>
 
-      <div className="relative z-10 container mx-auto px-4 py-12">
+      <div className="relative z-10 container mx-auto px-4 py-6">
         {/* Header */}
-        <div className="text-center mb-12">
-          <div className="mb-4">
-            <h1 className="text-6xl font-bold animate-bounce">
+        <div className="text-center mb-6">
+          <div className="mb-2">
+            <h1 className="text-4xl font-bold animate-bounce">
               <span className="inline-block">👁️</span> Sentinela
             </h1>
           </div>
@@ -191,7 +193,7 @@ function MainUI({
         {/* Main Content */}
         <div className="max-w-4xl mx-auto">
           {/* Video Feed */}
-          <div className="bg-black/30 backdrop-blur rounded-3xl p-8 mb-3 border border-white/20">
+          <div className="bg-black/30 backdrop-blur rounded-3xl p-4 mb-3 border border-white/20">
             {demoMode && (
               <div className="mb-4 flex justify-center">
                 <button
@@ -202,7 +204,7 @@ function MainUI({
                 </button>
               </div>
             )}
-            <div className="aspect-video bg-black/50 rounded-2xl flex items-center justify-center relative overflow-hidden">
+            <div className="aspect-[16/9] sm:aspect-[16/8] md:aspect-[16/7] bg-black/50 rounded-2xl flex items-center justify-center relative overflow-hidden">
               <VideoCamera
                 className="w-full h-full object-cover"
                 currentDemo={currentDemo}
@@ -310,33 +312,56 @@ function MainUI({
               <label className="block text-xl mb-3 font-semibold">
                 {texts.notifications_label}
               </label>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 {[
                   { icon: "🔊", label: texts.notification_sound, key: "sound" },
                   { icon: "📧", label: texts.notification_email, key: "email" },
-                  { icon: "💬", label: texts.notification_sms, key: "sms" },
-                  {
-                    icon: "🔗",
-                    label: texts.notification_webhook,
-                    key: "webhook",
-                  },
                 ].map((option) => (
                   <button
                     key={option.label}
                     onClick={() => onNotificationToggle(option.key)}
-                    className={`p-4 rounded-xl border transition-all hover:scale-105 ${
+                    className={`p-3 rounded-xl border transition-all hover:scale-105 ${
                       enabledNotifications[option.key]
                         ? "bg-yellow-400/30 border-yellow-400 hover:bg-yellow-400/40"
                         : "bg-white/10 hover:bg-white/20 border-white/30"
                     }`}
                     disabled={isWatching}
                   >
-                    <p className="text-2xl mb-1">{option.icon}</p>
-                    <p className="text-sm">{option.label}</p>
+                    <p className="text-xl mb-1">{option.icon}</p>
+                    <p className="text-xs">{option.label}</p>
                   </button>
                 ))}
               </div>
             </div>
+
+            {/* Regular Email Updates - Only show when email is enabled */}
+            {enabledNotifications.email && (
+              <div className="mb-6">
+                <label className="block text-xl mb-3 font-semibold">
+                  🕐 Should I also send you regular updates?
+                </label>
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { label: "Every 30 min", value: "0.5", key: "email_30min" },
+                    { label: "Every hour", value: "1", key: "email_1hour" },
+                    { label: "Every 2 hours", value: "2", key: "email_2hours" },
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => onNotificationToggle(option.key)}
+                      className={`p-3 rounded-xl border transition-all hover:scale-105 ${
+                        enabledNotifications[option.key]
+                          ? "bg-yellow-400/30 border-yellow-400 hover:bg-yellow-400/40"
+                          : "bg-white/10 hover:bg-white/20 border-white/30"
+                      }`}
+                      disabled={isWatching}
+                    >
+                      <p className="text-sm">{option.label}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Action Button */}
             <button
@@ -350,6 +375,115 @@ function MainUI({
             >
               {isWatching ? texts.stop_watching : texts.start_watching}
             </button>
+          </div>
+
+          {/* Watching Session Log */}
+          <div className="mt-12 bg-white/10 backdrop-blur rounded-3xl p-6 border border-white/20">
+            <button
+              onClick={() => setIsLogCollapsed(!isLogCollapsed)}
+              className="w-full flex items-center justify-between hover:opacity-80 transition-opacity"
+            >
+              <h2 className="text-xl font-bold flex items-center">
+                📋 Watching Log
+              </h2>
+              <span
+                className={`text-xl transition-transform duration-200 ${isLogCollapsed ? "-rotate-90" : "rotate-180"}`}
+              >
+                ⌃
+              </span>
+            </button>
+
+            {/* Mock log entries for demo - sorted desc by time */}
+            {!isLogCollapsed && (
+              <>
+                <div className="space-y-2 max-h-96 overflow-y-auto mt-4">
+                  {[
+                    {
+                      datetime: "Jan 21, 2:30 PM",
+                      event: "Stopped watching",
+                      type: "stop",
+                    },
+                    {
+                      datetime: "Jan 21, 1:00 PM",
+                      event: "Regular update: All clear",
+                      type: "update",
+                    },
+                    {
+                      datetime: "Jan 21, 12:15 PM",
+                      event: "Movement detected",
+                      type: "detection",
+                      hasVideo: true,
+                      videoId: "vid_002",
+                    },
+                    {
+                      datetime: "Jan 21, 11:30 AM",
+                      event: "Regular update: All clear",
+                      type: "update",
+                    },
+                    {
+                      datetime: "Jan 21, 11:00 AM",
+                      event: "Regular update: All clear",
+                      type: "update",
+                    },
+                    {
+                      datetime: "Jan 21, 10:45 AM",
+                      event: "Person detected at door",
+                      type: "detection",
+                      hasVideo: true,
+                      videoId: "vid_001",
+                    },
+                    {
+                      datetime: "Jan 21, 10:30 AM",
+                      event: "Started watching",
+                      type: "start",
+                    },
+                  ].map((entry, index) => (
+                    <div
+                      key={index}
+                      className={`p-2 rounded-lg border flex items-center justify-between ${
+                        entry.type === "detection"
+                          ? "bg-yellow-400/20 border-yellow-400/40"
+                          : entry.type === "start"
+                            ? "bg-green-400/20 border-green-400/40"
+                            : entry.type === "stop"
+                              ? "bg-red-400/20 border-red-400/40"
+                              : "bg-white/5 border-white/20"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 flex-1">
+                        <span className="text-sm">
+                          {entry.type === "detection" && "🚨"}
+                          {entry.type === "start" && "▶️"}
+                          {entry.type === "stop" && "⏹️"}
+                          {entry.type === "update" && "📊"}
+                        </span>
+                        <p className="text-xs text-gray-400">
+                          {entry.datetime}
+                        </p>
+                        <p className="text-sm">{entry.event}</p>
+                      </div>
+
+                      {entry.hasVideo && (
+                        <div className="flex gap-1">
+                          <button className="px-2 py-1 bg-blue-500/30 hover:bg-blue-500/40 rounded text-xs transition-all">
+                            ⬇️
+                          </button>
+                          <button className="px-2 py-1 bg-red-500/30 hover:bg-red-500/40 rounded text-xs transition-all">
+                            🗑️
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-4 text-center">
+                  <button className="px-4 py-1 bg-white/10 hover:bg-white/20 rounded-lg text-sm transition-all">
+                    📥 Export Log
+                  </button>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Fun Examples */}
