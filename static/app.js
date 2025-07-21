@@ -332,6 +332,11 @@ function MainUI({
                   </button>
                 ))}
               </div>
+              {enabledNotifications.email && (
+                <p className="text-sm text-white mt-2">
+                  ✅ I will send you an email when detections happen
+                </p>
+              )}
             </div>
 
             {/* Regular Email Updates - Only show when email is enabled */}
