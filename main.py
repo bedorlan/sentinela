@@ -226,8 +226,9 @@ def setup_logging():
 
 PORT = 8000
 
-def launch_browser():
+async def launch_browser():
     import webbrowser
+    await asyncio.sleep(2)
     logger.info("launching webbrowser")
     browser_name = 'google-chrome'
     try:
@@ -250,8 +251,7 @@ if __name__ == "__main__":
     if not is_server_mode:
         @app.on_event("startup")
         def startup_event():
-            # TODO: sometimes browser still launches before server
-            launch_browser()
+            asyncio.create_task(launch_browser())
     
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=PORT, log_config=None)
