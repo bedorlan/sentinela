@@ -17,7 +17,6 @@ import uuid
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
-security = HTTPBasic()
 sessions: dict[str, Session] = {}
 inference_engine: InferenceEngine = None
 
@@ -25,18 +24,20 @@ is_server_mode = os.getenv("SENTINELA_SERVER_MODE") == '1'
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-def authenticate(credentials: HTTPBasicCredentials = Depends(security)):
-    if not is_server_mode:
+if is_server_mode:
+    security = HTTPBasic()
+    def authenticate(credentials: HTTPBasicCredentials = Depends(security)):
+        guest_password = os.getenv("GUEST_PASSWORD")
+        if not guest_password:
+            raise HTTPException(status_code=500, detail="Authentication not configured")
+        
+        if credentials.username != "guest" or credentials.password != guest_password:
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+        
+        return credentials.username
+else:
+    def authenticate():
         return "local_user"
-
-    guest_password = os.getenv("GUEST_PASSWORD")
-    if not guest_password:
-        raise HTTPException(status_code=500, detail="Authentication not configured")
-    
-    if credentials.username != "guest" or credentials.password != guest_password:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-    
-    return credentials.username
 
 @app.get("/")
 async def read_root(username: str = Depends(authenticate), session_id: str = Cookie(None)):
