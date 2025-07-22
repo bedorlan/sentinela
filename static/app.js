@@ -9,6 +9,7 @@ import {
   useCloseWarning,
   useDetectionReset,
   useDetectionSound,
+  useEmailNotification,
   useLanguageLoader,
   useLoadDemos,
   useRotatingPlaceholder,
@@ -39,6 +40,7 @@ function App() {
   useCloseWarning(state);
   useDetectionReset(state, dispatch);
   useDetectionSound(state, dispatch);
+  useEmailNotification(state, dispatch);
   useLanguageLoader(state, dispatch);
   useLoadDemos(state, dispatch);
   useVideoDetection(state, dispatch);

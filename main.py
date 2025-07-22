@@ -3,7 +3,9 @@ from fastapi import FastAPI, WebSocket, Depends, HTTPException, Cookie
 from fastapi.responses import FileResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.staticfiles import StaticFiles
+from src.email_service import EmailService
 from src.inference_engine import InferenceEngine
+from src.model.email_request import EmailRequest
 from src.model.session import Session
 import asyncio
 import json
@@ -19,6 +21,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI()
 sessions: dict[str, Session] = {}
 inference_engine: InferenceEngine = None
+email_service = EmailService()
 
 is_server_mode = os.getenv("SENTINELA_SERVER_MODE") == '1'
 
@@ -191,6 +194,19 @@ async def inference_worker(websocket: WebSocket, session_info: Session):
             
         except Exception as e:
             logger.error(f"Inference worker error: {e}")
+
+@app.post("/send-email")
+async def send_email(email_request: EmailRequest, username: str = Depends(authenticate)):
+    """Send an email using SMTP"""
+    result = email_service.send_email(
+        subject=email_request.subject,
+        html_body=email_request.html_body
+    )
+    
+    if result["success"]:
+        return result
+    else:
+        raise HTTPException(status_code=500, detail=result["error"])
 
 def validate_environment():
     if is_server_mode and not os.getenv("GUEST_PASSWORD"):
