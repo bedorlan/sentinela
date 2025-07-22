@@ -235,12 +235,12 @@ function MainUI({
 
                   {/* Detection celebration */}
                   {detectionState === DetectionState.DETECTED && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-                      <div className="text-center animate-zoomIn">
-                        <p className="text-8xl mb-4">🎉</p>
-                        <p className="text-3xl font-bold text-yellow-400">
+                    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/50 backdrop-blur-sm rounded-full px-6 py-3">
+                      <div className="flex items-center space-x-3 animate-zoomIn">
+                        <span className="text-xl">🎉</span>
+                        <span className="text-base font-bold text-yellow-400">
                           {texts.detected}
-                        </p>
+                        </span>
                       </div>
                     </div>
                   )}
@@ -460,7 +460,7 @@ function MainUI({
                           {entry.type === "detection" && "🚨"}
                           {entry.type === "start" && "▶️"}
                           {entry.type === "stop" && "⏹️"}
-                          {entry.type === "update" && "📊"}
+                          {entry.type === "update" && "✅"}
                         </span>
                         <p className="text-xs text-gray-400">
                           {entry.datetime}
