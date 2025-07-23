@@ -6,10 +6,12 @@ import {
   DetectionState,
   Events,
   initialState,
+  isValidEmail,
   useCloseWarning,
   useDetectionReset,
   useDetectionSound,
   useEmailNotification,
+  useInitLoader,
   useLanguageLoader,
   useLoadDemos,
   useRotatingPlaceholder,
@@ -33,6 +35,7 @@ function App() {
     prompt,
     reason,
     texts,
+    toEmailAddress,
   } = state;
 
   const { placeholderText } = useRotatingPlaceholder(state, dispatch);
@@ -41,6 +44,7 @@ function App() {
   useDetectionReset(state, dispatch);
   useDetectionSound(state, dispatch);
   useEmailNotification(state, dispatch);
+  useInitLoader(state, dispatch);
   useLanguageLoader(state, dispatch);
   useLoadDemos(state, dispatch);
   useVideoDetection(state, dispatch);
@@ -65,6 +69,7 @@ function App() {
       prompt={prompt}
       reason={reason}
       texts={texts}
+      toEmailAddress={toEmailAddress}
       isLoadingTranslation={isLoadingTranslation}
       currentLanguage={currentLanguage}
       watchingDuration={watchingDuration}
@@ -101,6 +106,9 @@ function App() {
       onLanguageSwitch={(languageCode) =>
         dispatch({ type: Events.onLanguageChange, payload: languageCode })
       }
+      onToEmailAddressChange={(emailAddress) =>
+        dispatch({ type: Events.onToEmailAddressChange, payload: emailAddress })
+      }
     />
   );
 }
@@ -122,6 +130,7 @@ function MainUI({
   prompt,
   reason,
   texts,
+  toEmailAddress,
   watchingDuration,
   // events
   onDemoSelect,
@@ -132,8 +141,13 @@ function MainUI({
   onPromptChange,
   onStartWatching,
   onStopWatching,
+  onToEmailAddressChange,
 }) {
   const [isLogCollapsed, setIsLogCollapsed] = React.useState(true);
+
+  const hasValidEmail = isValidEmail(toEmailAddress);
+  const needsEmail = enabledNotifications.email && !hasValidEmail;
+  const isWatchingButtonDisabled = !isWatching && (!prompt || needsEmail);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 text-white overflow-hidden relative">
@@ -335,9 +349,18 @@ function MainUI({
                 ))}
               </div>
               {enabledNotifications.email && (
-                <p className="text-sm text-white mt-2">
-                  ✅ I will send you an email when detections happen
-                </p>
+                <div className="mt-3">
+                  <p className="text-sm text-white mb-2">
+                    ✅ I'll send you detection emails to:
+                  </p>
+                  <input
+                    type="email"
+                    value={toEmailAddress || ""}
+                    onChange={(e) => onToEmailAddressChange(e.target.value)}
+                    className="w-full px-4 py-2 rounded-lg bg-white/10 border border-white/30 text-white placeholder-gray-400 focus:outline-none focus:border-yellow-400 focus:bg-white/20 transition-all"
+                    disabled={isWatching}
+                  />
+                </div>
               )}
             </div>
 
@@ -349,7 +372,11 @@ function MainUI({
                 </label>
                 <div className="grid grid-cols-3 gap-3">
                   {[
-                    { label: "Every 30 min", value: "0.5", key: "email_30min" },
+                    {
+                      label: "Every 30 mins",
+                      value: "0.5",
+                      key: "email_30mins",
+                    },
                     { label: "Every hour", value: "1", key: "email_1hour" },
                     { label: "Every 2 hours", value: "2", key: "email_2hours" },
                   ].map((option) => (
@@ -373,7 +400,7 @@ function MainUI({
             {/* Action Button */}
             <button
               onClick={isWatching ? onStopWatching : onStartWatching}
-              disabled={!prompt && !isWatching}
+              disabled={isWatchingButtonDisabled}
               className={`w-full py-5 rounded-2xl text-2xl font-bold transition-all transform hover:scale-105 ${
                 isWatching
                   ? "bg-red-600 hover:bg-red-700"

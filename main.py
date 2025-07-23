@@ -1,5 +1,5 @@
 from datetime import datetime
-from fastapi import FastAPI, WebSocket, Depends, HTTPException, Cookie
+from fastapi import FastAPI, WebSocket, Depends, HTTPException, Cookie, Response
 from fastapi.responses import FileResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.staticfiles import StaticFiles
@@ -43,24 +43,8 @@ else:
         return "local_user"
 
 @app.get("/")
-async def read_root(username: str = Depends(authenticate), session_id: str = Cookie(None)):
-    if not session_id or session_id not in sessions:
-        session_id = str(uuid.uuid4())
-        sessions[session_id] = Session(
-            username=username,
-            created_at=datetime.now()
-        )
-        logger.info(f"New session created: {session_id} for user: {username}")
-    
-    response = FileResponse("static/index.html")
-    response.set_cookie(
-        key="session_id",
-        value=session_id,
-        httponly=True,
-        samesite="strict",
-        secure=False
-    )
-    return response
+async def read_root(username: str = Depends(authenticate)):
+    return FileResponse("static/index.html")
 
 @app.get("/favicon.ico")
 async def read_icon():
@@ -69,6 +53,29 @@ async def read_icon():
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
+
+@app.get("/init")
+async def init_endpoint(username: str = Depends(authenticate), session_id: str = Cookie(None)):
+    if not session_id or session_id not in sessions:
+        session_id = str(uuid.uuid4())
+        sessions[session_id] = Session(
+            username=username,
+            created_at=datetime.now()
+        )
+        logger.info(f"New session created: {session_id} for user: {username}")
+    
+    smtp_from_email = os.getenv("SMTP_FROM_EMAIL")
+    response_data = {"email_address": smtp_from_email}
+
+    response = Response(content=json.dumps(response_data), media_type="application/json")
+    response.set_cookie(
+        key="session_id",
+        value=session_id,
+        httponly=True,
+        samesite="strict",
+        secure=False
+    )
+    return response
 
 @app.get("/translations/{language}")
 async def get_translations(language: str, username: str = Depends(authenticate)):
@@ -200,6 +207,7 @@ async def send_email(email_request: EmailRequest, username: str = Depends(authen
     """Send an email using SMTP"""
     result = email_service.send_email(
         subject=email_request.subject,
+        to_email=email_request.to_email,
         html_body=email_request.html_body
     )
     

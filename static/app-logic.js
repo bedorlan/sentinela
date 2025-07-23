@@ -22,6 +22,7 @@ export const Events = Object.fromEntries(
     "onDetectionUpdate",
     "onFpsChange",
     "onImageQualityChange",
+    "onInitLoad",
     "onLanguageChange",
     "onLanguageLoadError",
     "onLanguageLoadStart",
@@ -29,6 +30,7 @@ export const Events = Object.fromEntries(
     "onNotificationToggle",
     "onPlaceholderRotate",
     "onPromptChange",
+    "onToEmailAddressChange",
     "onVideoFrame",
     "onWatchingStart",
     "onWatchingStop",
@@ -57,6 +59,7 @@ export const initialState = {
   prompt: "",
   reason: "",
   texts: {},
+  toEmailAddress: null,
   watchingStartTime: null,
 };
 
@@ -132,6 +135,10 @@ export function appReducer(draft, action) {
       draft.imageQuality = action.payload;
       break;
 
+    case Events.onInitLoad:
+      draft.toEmailAddress = action.payload.toEmailAddress;
+      break;
+
     case Events.onLanguageChange:
       if (draft.detectionState === DetectionState.IDLE) {
         draft.previousLanguage = draft.currentLanguage;
@@ -165,6 +172,10 @@ export function appReducer(draft, action) {
 
     case Events.onPromptChange:
       draft.prompt = action.payload;
+      break;
+
+    case Events.onToEmailAddressChange:
+      draft.toEmailAddress = action.payload;
       break;
 
     case Events.onVideoFrame:
@@ -319,9 +330,8 @@ export function useLanguageLoader(state, dispatch) {
       if (prefetchPromisesRef.current[currentLanguage]) {
         try {
           dispatch({ type: Events.onLanguageLoadStart });
-          const prefetchedData = await prefetchPromisesRef.current[
-            currentLanguage
-          ];
+          const prefetchedData =
+            await prefetchPromisesRef.current[currentLanguage];
           if (prefetchedData) {
             dispatch({
               type: Events.onLanguageLoadSuccess,
@@ -437,7 +447,7 @@ export function useVideoDetection(state, dispatch) {
 export function useEmailNotification(state, dispatch) {
   const [emailSentForDetection, setEmailSentForDetection] =
     React.useState(false);
-  const { detectionState, enabledNotifications, prompt, reason, confidence } =
+  const { detectionState, enabledNotifications, prompt, reason, confidence, toEmailAddress } =
     state;
 
   useEffect(() => {
@@ -465,6 +475,7 @@ export function useEmailNotification(state, dispatch) {
           <p><strong>Confidence:</strong> ${confidence}%</p>
           <p><strong>Reason:</strong> ${reason}</p>
         `,
+        to_email: toEmailAddress,
       };
 
       try {
@@ -493,6 +504,31 @@ export function useEmailNotification(state, dispatch) {
     prompt,
     reason,
   ]);
+}
+
+export function useInitLoader(state, dispatch) {
+  useEffect(() => {
+    const loadInitData = async () => {
+      try {
+        const response = await fetch("/init");
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+
+        dispatch({
+          type: Events.onInitLoad,
+          payload: { toEmailAddress: data.email_address },
+        });
+      } catch (error) {
+        console.error("Error loading init data:", error);
+      }
+    };
+
+    loadInitData();
+  }, []);
+
+  return {};
 }
 
 export function useWatchingDuration(state) {
@@ -544,4 +580,10 @@ export function useWatchingDuration(state) {
   }, [watchingStartTime, detectionState, texts]);
 
   return watchingDuration;
+}
+
+export function isValidEmail(email) {
+  if (!email || typeof email !== 'string') return false;
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email.trim());
 }
