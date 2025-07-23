@@ -287,7 +287,6 @@ export function useCloseWarning(state) {
 
 export function useLanguageLoader(state, dispatch) {
   const { currentLanguage } = state;
-  const activeTranslationPromiseRef = React.useRef(null);
   const prefetchPromisesRef = React.useRef({});
 
   useEffect(() => {
@@ -306,10 +305,10 @@ export function useLanguageLoader(state, dispatch) {
             throw new Error(`Prefetch failed: ${response.status}`);
           }
           const data = await response.json();
-          prefetchPromisesRef.current[languageCode] = Promise.resolve(data);
+          return data;
         } catch (error) {
           console.error("Translation prefetch error:", error);
-          prefetchPromisesRef.current[languageCode] = null;
+          return null;
         }
       };
 
@@ -319,24 +318,6 @@ export function useLanguageLoader(state, dispatch) {
 
   useEffect(() => {
     const loadTexts = async () => {
-      if (activeTranslationPromiseRef.current) {
-        try {
-          const data = await activeTranslationPromiseRef.current;
-          dispatch({
-            type: Events.onLanguageLoadSuccess,
-            payload: { texts: data.translations },
-          });
-          return;
-        } catch (error) {
-          console.error("Error loading translations:", error);
-          dispatch({
-            type: Events.onLanguageLoadError,
-            payload: { error: error.message },
-          });
-          return;
-        }
-      }
-
       if (prefetchPromisesRef.current[currentLanguage]) {
         try {
           dispatch({ type: Events.onLanguageLoadStart });
@@ -358,21 +339,14 @@ export function useLanguageLoader(state, dispatch) {
       try {
         dispatch({ type: Events.onLanguageLoadStart });
 
-        const translationPromise = fetch(
-          `/translations/${currentLanguage}`,
-        ).then(async (response) => {
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            const errorMessage =
-              errorData.detail || `HTTP error! status: ${response.status}`;
-            throw new Error(errorMessage);
-          }
-          return response.json();
-        });
-
-        activeTranslationPromiseRef.current = translationPromise;
-        const data = await translationPromise;
-        activeTranslationPromiseRef.current = null;
+        const response = await fetch(`/translations/${currentLanguage}`);
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          const errorMessage =
+            errorData.detail || `HTTP error! status: ${response.status}`;
+          throw new Error(errorMessage);
+        }
+        const data = await response.json();
 
         dispatch({
           type: Events.onLanguageLoadSuccess,
@@ -380,7 +354,6 @@ export function useLanguageLoader(state, dispatch) {
         });
       } catch (error) {
         console.error("Error loading translations:", error);
-        activeTranslationPromiseRef.current = null;
         dispatch({
           type: Events.onLanguageLoadError,
           payload: { error: error.message },
