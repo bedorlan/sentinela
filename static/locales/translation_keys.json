@@ -33,5 +33,11 @@
   "days": "days",
   "hours": "hours",
   "minutes": "minutes",
-  "seconds": "seconds"
+  "seconds": "seconds",
+  "demo_footprints": "🐾 Footprints on my bed",
+  "demo_security": "🛡️ Security guard",
+  "demo_elderly": "👴 Elderly safety",
+  "demo_baby": "👶 Crib escape",
+  "demo_industrial": "🏭 Industrial safety",
+  "demo_parking": "🚗 Parking entrance"
 }

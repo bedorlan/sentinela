@@ -363,7 +363,7 @@ function MainUI({
                   className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 transition-all hover:scale-105"
                   disabled={isWatching}
                 >
-                  {demo.demo_name}
+                  {texts[demo.translation_key]}
                 </button>
               ))}
             </div>
