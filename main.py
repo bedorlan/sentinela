@@ -125,7 +125,8 @@ async def websocket_frames(websocket: WebSocket):
 
     session_info.current_prompt = None
     session_info.frame_buffer.clear()
-    inference_task = asyncio.create_task(inference_worker(websocket, session_info))
+    shared_language = {"value": "en"}
+    inference_task = asyncio.create_task(inference_worker(websocket, session_info, shared_language))
 
     try:
         while True:
@@ -134,6 +135,7 @@ async def websocket_frames(websocket: WebSocket):
             data = msgpack.unpackb(packed_data, raw=False)
             prompt = data.get("prompt", "")
             frame_data = bytes(data.get("frame", []))
+            language = data.get("language", "en")
             
             if not prompt or not frame_data:
                 continue
@@ -142,6 +144,7 @@ async def websocket_frames(websocket: WebSocket):
                 session_info.frame_buffer.clear()
                 session_info.current_prompt = prompt
             
+            shared_language["value"] = language  # Update shared language
             session_info.frame_buffer.append(frame_data)
             
             if len(session_info.frame_buffer) > FRAME_BUFFER_SIZE:
@@ -158,13 +161,14 @@ async def websocket_frames(websocket: WebSocket):
     
     logger.info(f"WebSocket connection closed at {datetime.now()}")
 
-async def inference_worker(websocket: WebSocket, session_info: Session):
+async def inference_worker(websocket: WebSocket, session_info: Session, shared_language: dict):
     while websocket.client_state.value == 1:
         try:
             await asyncio.sleep(1)
                 
             frames_to_process = session_info.frame_buffer[-FRAMES_PER_INFERENCE:]
             current_prompt = session_info.current_prompt
+            current_language = shared_language["value"]
             
             if not current_prompt:
                 logger.warning("weird: no prompt")
@@ -189,7 +193,7 @@ async def inference_worker(websocket: WebSocket, session_info: Session):
                 except Exception as e:
                     logger.error(f"Error processing frame: {e}")
 
-            task = asyncio.create_task(inference_engine.process_frames(frames_to_process, current_prompt))
+            task = asyncio.create_task(inference_engine.process_frames(frames_to_process, current_prompt, current_language))
             task.add_done_callback(handle_frame_result)
             
         except Exception as e:

@@ -366,7 +366,9 @@ export function useLanguageLoader(state, dispatch) {
 }
 
 export function useVideoDetection(state, dispatch) {
-  const { detectionState, lastVideoFrame, prompt } = state;
+  const { detectionState, lastVideoFrame, prompt, currentLanguage } = state;
+  const currentLanguageRef = React.useRef(currentLanguage);
+  currentLanguageRef.current = currentLanguage;
 
   const isWatching =
     detectionState === DetectionState.WATCHING ||
@@ -421,6 +423,7 @@ export function useVideoDetection(state, dispatch) {
           const packed = MessagePack.encode({
             prompt: prompt,
             frame: uint8Array,
+            language: currentLanguageRef.current,
           });
           sendMessage(packed);
         }

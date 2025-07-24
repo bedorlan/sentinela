@@ -35,7 +35,7 @@ class OpenRouterInference(InferenceEngine):
             logger.error("Application cannot function without OpenRouter API key. Exiting.")
             exit(1)
 
-    async def process_frames(self, frames_data: List[bytes], prompt: str) -> InferenceResponse:
+    async def process_frames(self, frames_data: List[bytes], prompt: str, language: str = "en") -> InferenceResponse:
         """
         Process multiple frames for AI analysis.
         
@@ -43,7 +43,7 @@ class OpenRouterInference(InferenceEngine):
             InferenceResponse: Response containing processing decision and metadata
         """
         start_time = datetime.now().timestamp()
-        ai_response = await self._analyze_frame_with_ai(frames_data, prompt)
+        ai_response = await self._analyze_frame_with_ai(frames_data, prompt, language)
         if not ai_response:
             return InferenceResponse(should_process=False)
 
@@ -55,7 +55,7 @@ class OpenRouterInference(InferenceEngine):
             start_time=start_time
         )
 
-    async def _analyze_frame_with_ai(self, frames: list, prompt: str) -> str:
+    async def _analyze_frame_with_ai(self, frames: list, prompt: str, language: str = "en") -> str:
         """Internal function to analyze frames using OpenRouter"""
         try:
             content = []
@@ -69,7 +69,7 @@ class OpenRouterInference(InferenceEngine):
                     }
                 })
 
-            analysis_prompt = util.create_analysis_prompt(prompt)
+            analysis_prompt = util.create_analysis_prompt(prompt, language)
             content.append({
                 "type": "text",
                 "text": analysis_prompt
