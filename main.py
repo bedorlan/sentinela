@@ -125,8 +125,7 @@ async def websocket_frames(websocket: WebSocket):
 
     session_info.current_prompt = None
     session_info.frame_buffer.clear()
-    shared_language = {"value": "en"}
-    inference_task = asyncio.create_task(inference_worker(websocket, session_info, shared_language))
+    inference_task = asyncio.create_task(inference_worker(websocket, session_info))
 
     try:
         while True:
@@ -144,7 +143,7 @@ async def websocket_frames(websocket: WebSocket):
                 session_info.frame_buffer.clear()
                 session_info.current_prompt = prompt
             
-            shared_language["value"] = language  # Update shared language
+            session_info.language = language
             session_info.frame_buffer.append(frame_data)
             
             if len(session_info.frame_buffer) > FRAME_BUFFER_SIZE:
@@ -161,14 +160,14 @@ async def websocket_frames(websocket: WebSocket):
     
     logger.info(f"WebSocket connection closed at {datetime.now()}")
 
-async def inference_worker(websocket: WebSocket, session_info: Session, shared_language: dict):
+async def inference_worker(websocket: WebSocket, session_info: Session):
     while websocket.client_state.value == 1:
         try:
             await asyncio.sleep(1)
                 
             frames_to_process = session_info.frame_buffer[-FRAMES_PER_INFERENCE:]
             current_prompt = session_info.current_prompt
-            current_language = shared_language["value"]
+            current_language = session_info.language
             
             if not current_prompt:
                 logger.warning("weird: no prompt")
