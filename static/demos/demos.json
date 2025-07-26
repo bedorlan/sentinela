@@ -36,9 +36,15 @@
     "original": "https://www.youtube.com/watch?v=ju8baHe6jwM"
   },
   {
-    "translation_key": "cat_sleeping",
+    "translation_key": "demo_cat_sleeping",
     "file": "cat.mp4",
     "prompt": "my cat is finally awake",
     "original": "https://www.youtube.com/watch?v=q6nnacxDOUQ"
+  },
+  {
+    "translation_key": "demo_thirsty_bird",
+    "file": "guacamaya.mp4",
+    "prompt": "bird drinking water",
+    "original": "https://www.youtube.com/watch?v=AQitedDg96Q"
   }
 ]
