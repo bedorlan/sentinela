@@ -34,5 +34,11 @@
     "file": "gate.mp4",
     "prompt": "car at the gate with visible license plate. read the license plate",
     "original": "https://www.youtube.com/watch?v=ju8baHe6jwM"
+  },
+  {
+    "translation_key": "cat_sleeping",
+    "file": "cat.mp4",
+    "prompt": "my cat is finally awake",
+    "original": "https://www.youtube.com/watch?v=q6nnacxDOUQ"
   }
 ]
