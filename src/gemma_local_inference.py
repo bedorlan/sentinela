@@ -26,33 +26,43 @@ class GemmaLocalInference(InferenceEngine):
     
     def _initialize_model(self):
         hf_token = os.getenv('HF_TOKEN')
-        if hf_token:
+        offline_mode = os.getenv('HF_HUB_OFFLINE') == '1'
+        
+        if hf_token and not offline_mode:
             login(hf_token)
             logger.info("Logged in to Hugging Face")
         else:
-            logger.error("HF_TOKEN environment variable not found")
-            logger.error("Application cannot function without Hugging Face token. Exiting.")
-            exit(1)
+            logger.info("using Hugging Face offline mode")
         
         logger.info(f"Loading {self.model_name} model...")
-        
+        self.pipe = self._load_model(local_files_only=offline_mode)
+
+        if not self.pipe:
+            logger.error("Application cannot function without model. Exiting.")
+            exit(1)
+
+        if hasattr(torch, 'compile'):
+            logger.info("Compiling model...")
+            self.pipe.model = torch.compile(self.pipe.model, mode="max-autotune")
+    
+    def _load_model(self, local_files_only=False):
+        source = "local cache" if local_files_only else "online source"
         try:
-            self.pipe = pipeline(
+            logger.info(f"Attempting to load model from {source}...")
+            pipe = pipeline(
                 "image-text-to-text",
                 model=self.model_name,
                 device_map="auto",
                 torch_dtype="auto",
                 trust_remote_code=True,
+                local_files_only=local_files_only,
             )
-
-            if hasattr(torch, 'compile'):
-                logger.info("Compiling model...")
-                self.pipe.model = torch.compile(self.pipe.model, mode="max-autotune")
-
+            logger.info(f"Successfully loaded model from {source}")
+            return pipe
         except Exception as e:
-            logger.error(f"Failed to load Gemma model: {str(e)}")
-            logger.error("Application cannot function without local model. Exiting.")
-            exit(1)
+            log_level = logger.error if local_files_only else logger.warning
+            log_level(f"Failed to load model from {source}: {str(e)}")
+            return None
     
     async def process_frames(self, frames_data: List[bytes], prompt: str, language: str = "en") -> InferenceResponse:
         if self.active_inferences >= MAX_CONCURRENT_INFERENCES:
