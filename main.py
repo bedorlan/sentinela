@@ -3,6 +3,7 @@ from fastapi import FastAPI, WebSocket, Depends, HTTPException, Cookie, Response
 from fastapi.responses import FileResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.staticfiles import StaticFiles
+from src.browser_launcher import launch_browser
 from src.email_service import EmailService
 from src.inference_engine import InferenceEngine
 from src.model.email_request import EmailRequest
@@ -13,19 +14,18 @@ import logging
 import msgpack
 import os
 import sys
-import time
 import uuid
 
-logger = logging.getLogger(__name__)
+HTTP_SERVER_PORT = 8000
+FRAMES_PER_INFERENCE = 6
+FRAME_BUFFER_SIZE = 9
 
+logger = logging.getLogger(__name__)
 app = FastAPI()
 sessions: dict[str, Session] = {}
 inference_engine: InferenceEngine = None
 email_service = EmailService()
-
 is_server_mode = os.getenv("SENTINELA_SERVER_MODE") == '1'
-
-app.mount("/static", StaticFiles(directory="static"), name="static")
 
 if is_server_mode:
     security = HTTPBasic()
@@ -41,6 +41,8 @@ if is_server_mode:
 else:
     def authenticate():
         return "local_user"
+    
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.get("/")
 async def read_root(username: str = Depends(authenticate)):
@@ -107,9 +109,6 @@ async def get_translations(language: str, username: str = Depends(authenticate))
     except Exception as e:
         logger.error(f"Translation error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Translation failed: {str(e)}")
-    
-FRAMES_PER_INFERENCE = 6
-FRAME_BUFFER_SIZE = 9
 
 @app.websocket("/ws/frames")
 async def websocket_frames(websocket: WebSocket):
@@ -251,26 +250,6 @@ def setup_logging():
     logging.basicConfig(level=logging.INFO, handlers=[info_handler, warning_handler])
     logging.getLogger("httpx").setLevel(logging.WARNING)
 
-PORT = 8000
-
-async def launch_browser():
-    import webbrowser
-    await asyncio.sleep(2)
-    logger.info("launching webbrowser")
-    browser_name = 'google-chrome'
-    try:
-        browser = webbrowser.get(browser_name)
-        browser.remote_args = [
-            "--app=%s",
-            "--new-window",
-            "--disable-background-timer-throttling",
-            "--disable-renderer-backgrounding",
-            "--autoplay-policy=no-user-gesture-required",
-        ]
-        browser.open(f'http://localhost:{PORT}?t={int(time.time())}')
-    except Exception as e:
-        logger.error(f"{e}\nunable to open: {browser_name}")
-
 if __name__ == "__main__":
     validate_environment()
     setup_logging()
@@ -278,7 +257,7 @@ if __name__ == "__main__":
     if not is_server_mode:
         @app.on_event("startup")
         def startup_event():
-            asyncio.create_task(launch_browser())
+            asyncio.create_task(launch_browser(HTTP_SERVER_PORT))
     
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=PORT, log_config=None)
+    uvicorn.run(app, host="0.0.0.0", port=HTTP_SERVER_PORT, log_config=None)
