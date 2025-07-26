@@ -9,3 +9,4 @@ class Session:
     created_at: datetime
     frame_buffer: List[bytes] = field(default_factory=list)
     current_prompt: Optional[str] = None
+    language: str = "en"

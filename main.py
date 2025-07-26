@@ -141,6 +141,7 @@ async def websocket_frames(websocket: WebSocket):
             data = msgpack.unpackb(packed_data, raw=False)
             prompt = data.get("prompt", "")
             frame_data = bytes(data.get("frame", []))
+            language = data.get("language", "en")
             
             if not prompt or not frame_data:
                 continue
@@ -149,6 +150,7 @@ async def websocket_frames(websocket: WebSocket):
                 session_info.frame_buffer.clear()
                 session_info.current_prompt = prompt
             
+            session_info.language = language
             session_info.frame_buffer.append(frame_data)
             
             if len(session_info.frame_buffer) > FRAME_BUFFER_SIZE:
@@ -172,6 +174,7 @@ async def inference_worker(websocket: WebSocket, session_info: Session):
                 
             frames_to_process = session_info.frame_buffer[-FRAMES_PER_INFERENCE:]
             current_prompt = session_info.current_prompt
+            current_language = session_info.language
             
             if not current_prompt:
                 logger.warning("weird: no prompt")
@@ -196,7 +199,7 @@ async def inference_worker(websocket: WebSocket, session_info: Session):
                 except Exception as e:
                     logger.error(f"Error processing frame: {e}")
 
-            task = asyncio.create_task(inference_engine.process_frames(frames_to_process, current_prompt))
+            task = asyncio.create_task(inference_engine.process_frames(frames_to_process, current_prompt, current_language))
             task.add_done_callback(handle_frame_result)
             
         except Exception as e:

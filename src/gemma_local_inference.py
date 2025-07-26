@@ -54,7 +54,7 @@ class GemmaLocalInference(InferenceEngine):
             logger.error("Application cannot function without local model. Exiting.")
             exit(1)
     
-    async def process_frames(self, frames_data: List[bytes], prompt: str) -> InferenceResponse:
+    async def process_frames(self, frames_data: List[bytes], prompt: str, language: str = "en") -> InferenceResponse:
         if self.active_inferences >= MAX_CONCURRENT_INFERENCES:
             return InferenceResponse(should_process=False)
         
@@ -62,7 +62,7 @@ class GemmaLocalInference(InferenceEngine):
         
         try:
             start_time = datetime.now().timestamp()
-            ai_response = await self._analyze_frames_with_model(frames_data, prompt)
+            ai_response = await self._analyze_frames_with_model(frames_data, prompt, language)
             if not ai_response:
                 return InferenceResponse(should_process=False)
                 
@@ -76,17 +76,17 @@ class GemmaLocalInference(InferenceEngine):
         finally:
             self.active_inferences -= 1
     
-    async def _analyze_frames_with_model(self, frames_data: List[bytes], prompt: str) -> str:
+    async def _analyze_frames_with_model(self, frames_data: List[bytes], prompt: str, language: str = "en") -> str:
         try:
             loop = asyncio.get_event_loop()
-            result = await loop.run_in_executor(None, self._run_inference, frames_data, prompt)
+            result = await loop.run_in_executor(None, self._run_inference, frames_data, prompt, language)
             return result
 
         except Exception as e:
             logger.error(f"Model analysis error: {str(e)}")
             return ""
     
-    def _run_inference(self, frames_data: list[bytes], prompt: str) -> str:
+    def _run_inference(self, frames_data: list[bytes], prompt: str, language: str = "en") -> str:
         try:
             content = []
             for frame_data in frames_data:
@@ -94,7 +94,7 @@ class GemmaLocalInference(InferenceEngine):
                 image = Image.open(io.BytesIO(resized_frame_data))
                 content.append({"type": "image", "image": image})
             
-            analysis_prompt = util.create_analysis_prompt(prompt)
+            analysis_prompt = util.create_analysis_prompt(prompt, language)
             content.append({"type": "text", "text": analysis_prompt})
             messages = [
                 {

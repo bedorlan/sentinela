@@ -6,7 +6,7 @@ import re
 logger = logging.getLogger(__name__)
 
 
-def create_analysis_prompt(prompt: str) -> str:
+def create_analysis_prompt(prompt: str, language: str = "en") -> str:
     """
     Create a standardized analysis prompt for AI models.
     """
@@ -23,6 +23,8 @@ def create_analysis_prompt(prompt: str) -> str:
         |75|Person appears to be smiling but partially obscured|
 
         User Prompt: {prompt}
+        
+        Always reply in the language indicated by the two-letter ISO 639-1 code `{language}`.
     """
     return re.sub(r'\n\s+', '\n', analysis_prompt)
 
