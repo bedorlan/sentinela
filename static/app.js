@@ -36,6 +36,7 @@ function App() {
     reason,
     texts,
     toEmailAddress,
+    watchingLogs,
   } = state;
 
   const { placeholderText } = useRotatingPlaceholder(state, dispatch);
@@ -73,6 +74,7 @@ function App() {
       isLoadingTranslation={isLoadingTranslation}
       currentLanguage={currentLanguage}
       watchingDuration={watchingDuration}
+      watchingLogs={watchingLogs}
       onDemoSelect={(demo) => {
         dispatch({ type: Events.onDemoStart, payload: { demo } });
         console.log(`Starting demo: ${demo.demo_name}`);
@@ -132,6 +134,7 @@ function MainUI({
   texts,
   toEmailAddress,
   watchingDuration,
+  watchingLogs,
   // events
   onDemoSelect,
   onHandleFrame,
@@ -421,94 +424,70 @@ function MainUI({
                 📋 Watching Log
               </h2>
               <span
-                className={`text-xl transition-transform duration-200 ${isLogCollapsed ? "-rotate-90" : "rotate-180"}`}
+                className={`text-xl transition-transform duration-200 ${
+                  isLogCollapsed ? "-rotate-90" : "rotate-180"
+                }`}
               >
                 ⌃
               </span>
             </button>
 
-            {/* Mock log entries for demo - sorted desc by time */}
+            {/* Real log entries from state */}
             {!isLogCollapsed && (
               <>
                 <div className="space-y-2 max-h-96 overflow-y-auto mt-4">
-                  {[
-                    {
-                      datetime: "Jan 21, 2:30 PM",
-                      event: "Stopped watching",
-                      type: "stop",
-                    },
-                    {
-                      datetime: "Jan 21, 1:00 PM",
-                      event: "Regular update: All clear",
-                      type: "update",
-                    },
-                    {
-                      datetime: "Jan 21, 12:15 PM",
-                      event: "Movement detected",
-                      type: "detection",
-                      hasVideo: true,
-                      videoId: "vid_002",
-                    },
-                    {
-                      datetime: "Jan 21, 11:30 AM",
-                      event: "Regular update: All clear",
-                      type: "update",
-                    },
-                    {
-                      datetime: "Jan 21, 11:00 AM",
-                      event: "Regular update: All clear",
-                      type: "update",
-                    },
-                    {
-                      datetime: "Jan 21, 10:45 AM",
-                      event: "Person detected at door",
-                      type: "detection",
-                      hasVideo: true,
-                      videoId: "vid_001",
-                    },
-                    {
-                      datetime: "Jan 21, 10:30 AM",
-                      event: "Started watching",
-                      type: "start",
-                    },
-                  ].map((entry, index) => (
-                    <div
-                      key={index}
-                      className={`p-2 rounded-lg border flex items-center justify-between ${
-                        entry.type === "detection"
-                          ? "bg-yellow-400/20 border-yellow-400/40"
-                          : entry.type === "start"
-                            ? "bg-green-400/20 border-green-400/40"
-                            : entry.type === "stop"
+                  {watchingLogs.length === 0 ? (
+                    <div className="text-center py-8 text-gray-400">
+                      <p className="text-sm">
+                        No logs yet. Start watching to see activity here.
+                      </p>
+                    </div>
+                  ) : (
+                    watchingLogs.map((entry) => {
+                      const formattedTime = new Date(
+                        entry.timestamp,
+                      ).toLocaleString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        hour: "numeric",
+                        minute: "2-digit",
+                        hour12: true,
+                      });
+
+                      return (
+                        <div
+                          key={entry.id}
+                          className={`p-2 rounded-lg border flex items-center justify-between ${
+                            entry.type === "detection"
+                              ? "bg-yellow-400/20 border-yellow-400/40"
+                              : entry.type === "start"
+                              ? "bg-green-400/20 border-green-400/40"
+                              : entry.type === "stop"
                               ? "bg-red-400/20 border-red-400/40"
                               : "bg-white/5 border-white/20"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 flex-1">
-                        <span className="text-sm">
-                          {entry.type === "detection" && "🚨"}
-                          {entry.type === "start" && "▶️"}
-                          {entry.type === "stop" && "⏹️"}
-                          {entry.type === "update" && "✅"}
-                        </span>
-                        <p className="text-xs text-gray-400">
-                          {entry.datetime}
-                        </p>
-                        <p className="text-sm">{entry.event}</p>
-                      </div>
-
-                      {entry.hasVideo && (
-                        <div className="flex gap-1">
-                          <button className="px-2 py-1 bg-blue-500/30 hover:bg-blue-500/40 rounded text-xs transition-all">
-                            ⬇️
-                          </button>
-                          <button className="px-2 py-1 bg-red-500/30 hover:bg-red-500/40 rounded text-xs transition-all">
-                            🗑️
-                          </button>
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 flex-1">
+                            <span className="text-sm">
+                              {entry.type === "detection" && "🚨"}
+                              {entry.type === "start" && "▶️"}
+                              {entry.type === "stop" && "⏹️"}
+                              {entry.type === "update" && "✅"}
+                            </span>
+                            <p className="text-xs text-gray-400">
+                              {formattedTime}
+                            </p>
+                            <p className="text-sm">{entry.event}</p>
+                            {entry.type === "detection" && entry.confidence && (
+                              <span className="text-xs text-yellow-300 ml-2">
+                                ({Math.round(entry.confidence)}%)
+                              </span>
+                            )}
+                          </div>
                         </div>
-                      )}
-                    </div>
-                  ))}
+                      );
+                    })
+                  )}
                 </div>
 
                 <div className="mt-4 text-center">

@@ -27,6 +27,8 @@ export const Events = Object.fromEntries(
     "onLanguageLoadError",
     "onLanguageLoadStart",
     "onLanguageLoadSuccess",
+    "onLogAdd",
+    "onLogClear",
     "onNotificationToggle",
     "onPlaceholderRotate",
     "onPromptChange",
@@ -60,6 +62,7 @@ export const initialState = {
   reason: "",
   texts: {},
   toEmailAddress: null,
+  watchingLogs: [],
   watchingStartTime: null,
 };
 
@@ -88,6 +91,13 @@ export function appReducer(draft, action) {
       draft.consecutiveDetections = 0;
       draft.reason = "";
       draft.watchingStartTime = Date.now();
+      draft.watchingLogs.unshift({
+        id: generateLogId(),
+        timestamp: new Date(),
+        type: "start",
+        event: `Started watching (demo mode): ${action.payload.demo.prompt}`,
+        prompt: action.payload.demo.prompt,
+      });
       break;
 
     case Events.onDemosLoad:
@@ -114,17 +124,47 @@ export function appReducer(draft, action) {
         draft.reason = action.payload.reason;
         draft.lastReasonUpdateTime = currentTime;
       }
+
       if (action.payload.confidence < CONFIDENCE_THRESHOLD) {
         draft.consecutiveDetections = 0;
+        draft.watchingLogs.unshift({
+          id: generateLogId(),
+          timestamp: new Date(),
+          type: "update",
+          event: action.payload.reason,
+          confidence: action.payload.confidence,
+          reason: action.payload.reason,
+          prompt: draft.prompt,
+        });
         break;
       }
 
       draft.consecutiveDetections++;
-      if (draft.consecutiveDetections >= CONSECUTIVE_DETECTIONS_REQUIRED) {
-        draft.detectionState = DetectionState.DETECTED;
-        draft.reason = action.payload.reason;
-        draft.lastReasonUpdateTime = currentTime;
+      if (draft.consecutiveDetections < CONSECUTIVE_DETECTIONS_REQUIRED) {
+        draft.watchingLogs.unshift({
+          id: generateLogId(),
+          timestamp: new Date(),
+          type: "update",
+          event: action.payload.reason,
+          confidence: action.payload.confidence,
+          reason: action.payload.reason,
+          prompt: draft.prompt,
+        });
+        break;
       }
+
+      draft.detectionState = DetectionState.DETECTED;
+      draft.reason = action.payload.reason;
+      draft.lastReasonUpdateTime = currentTime;
+      draft.watchingLogs.unshift({
+        id: generateLogId(),
+        timestamp: new Date(),
+        type: "detection",
+        event: action.payload.reason,
+        confidence: action.payload.confidence,
+        reason: action.payload.reason,
+        prompt: draft.prompt,
+      });
       break;
 
     case Events.onFpsChange:
@@ -189,11 +229,41 @@ export function appReducer(draft, action) {
       draft.reason = "";
       draft.lastVideoFrame = null;
       draft.watchingStartTime = Date.now();
+      draft.watchingLogs.unshift({
+        id: generateLogId(),
+        timestamp: new Date(),
+        type: "start",
+        event: `Started watching: ${draft.prompt}`,
+        prompt: draft.prompt,
+      });
       break;
 
     case Events.onWatchingStop:
       draft.detectionState = DetectionState.IDLE;
       draft.confidence = 0;
+      draft.watchingLogs.unshift({
+        id: generateLogId(),
+        timestamp: new Date(),
+        type: "stop",
+        event: "Stopped watching",
+        prompt: draft.prompt,
+      });
+      break;
+
+    case Events.onLogAdd:
+      draft.watchingLogs.unshift({
+        id: generateLogId(),
+        timestamp: new Date(),
+        type: action.payload.type,
+        event: action.payload.event,
+        confidence: action.payload.confidence,
+        reason: action.payload.reason,
+        prompt: action.payload.prompt,
+      });
+      break;
+
+    case Events.onLogClear:
+      draft.watchingLogs = [];
       break;
   }
 }
@@ -330,8 +400,9 @@ export function useLanguageLoader(state, dispatch) {
       if (prefetchPromisesRef.current[currentLanguage]) {
         try {
           dispatch({ type: Events.onLanguageLoadStart });
-          const prefetchedData =
-            await prefetchPromisesRef.current[currentLanguage];
+          const prefetchedData = await prefetchPromisesRef.current[
+            currentLanguage
+          ];
           if (prefetchedData) {
             dispatch({
               type: Events.onLanguageLoadSuccess,
@@ -448,8 +519,14 @@ export function useVideoDetection(state, dispatch) {
 export function useEmailNotification(state, dispatch) {
   const [emailSentForDetection, setEmailSentForDetection] =
     React.useState(false);
-  const { detectionState, enabledNotifications, prompt, reason, confidence, toEmailAddress } =
-    state;
+  const {
+    detectionState,
+    enabledNotifications,
+    prompt,
+    reason,
+    confidence,
+    toEmailAddress,
+  } = state;
 
   useEffect(() => {
     const sendEmailNotification = async () => {
@@ -584,7 +661,11 @@ export function useWatchingDuration(state) {
 }
 
 export function isValidEmail(email) {
-  if (!email || typeof email !== 'string') return false;
+  if (!email || typeof email !== "string") return false;
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email.trim());
+}
+
+function generateLogId() {
+  return `log-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 }
