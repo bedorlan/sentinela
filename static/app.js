@@ -479,7 +479,20 @@ function MainUI({
                             <p className="text-xs text-gray-400">
                               {formattedTime}
                             </p>
-                            <p className="text-sm">{entry.event}</p>
+                            <p className="text-sm">
+                              {entry.reason ? (
+                                <span className="italic">{entry.reason}</span>
+                              ) : entry.type === WatchLogEventType.START ? (
+                                <>
+                                  Started watching:{" "}
+                                  <span className="italic">{entry.prompt}</span>
+                                </>
+                              ) : entry.type === WatchLogEventType.STOP ? (
+                                "Stopped watching"
+                              ) : (
+                                ""
+                              )}
+                            </p>
                             {entry.type === WatchLogEventType.DETECTION &&
                               entry.confidence && (
                                 <span className="text-xs text-yellow-300 ml-2">

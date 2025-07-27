@@ -102,7 +102,6 @@ export function appReducer(draft, action) {
         id: generateLogId(),
         timestamp: new Date(),
         type: WatchLogEventType.START,
-        event: `Started watching (demo mode): ${action.payload.demo.prompt}`,
         prompt: action.payload.demo.prompt,
       });
       break;
@@ -143,7 +142,6 @@ export function appReducer(draft, action) {
           id: generateLogId(),
           timestamp: new Date(),
           type: WatchLogEventType.UPDATE,
-          event: action.payload.reason,
           confidence: action.payload.confidence,
           reason: action.payload.reason,
           prompt: draft.prompt,
@@ -158,7 +156,6 @@ export function appReducer(draft, action) {
         id: generateLogId(),
         timestamp: new Date(),
         type: WatchLogEventType.DETECTION,
-        event: action.payload.reason,
         confidence: action.payload.confidence,
         reason: action.payload.reason,
         prompt: draft.prompt,
@@ -231,7 +228,6 @@ export function appReducer(draft, action) {
         id: generateLogId(),
         timestamp: new Date(),
         type: WatchLogEventType.START,
-        event: `Started watching: ${draft.prompt}`,
         prompt: draft.prompt,
       });
       break;
@@ -243,7 +239,6 @@ export function appReducer(draft, action) {
         id: generateLogId(),
         timestamp: new Date(),
         type: WatchLogEventType.STOP,
-        event: "Stopped watching",
         prompt: draft.prompt,
       });
       break;
@@ -253,7 +248,6 @@ export function appReducer(draft, action) {
         id: generateLogId(),
         timestamp: new Date(),
         type: action.payload.type,
-        event: action.payload.event,
         confidence: action.payload.confidence,
         reason: action.payload.reason,
         prompt: action.payload.prompt,
