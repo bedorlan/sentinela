@@ -134,19 +134,10 @@ export function appReducer(draft, action) {
 
       if (action.payload.confidence < CONFIDENCE_THRESHOLD) {
         draft.consecutiveDetections = 0;
-        draft.watchingLogs.unshift({
-          id: generateLogId(),
-          timestamp: new Date(),
-          type: WatchLogEventType.UPDATE,
-          event: action.payload.reason,
-          confidence: action.payload.confidence,
-          reason: action.payload.reason,
-          prompt: draft.prompt,
-        });
-        break;
+      } else {
+        draft.consecutiveDetections++;
       }
 
-      draft.consecutiveDetections++;
       if (draft.consecutiveDetections < CONSECUTIVE_DETECTIONS_REQUIRED) {
         draft.watchingLogs.unshift({
           id: generateLogId(),
