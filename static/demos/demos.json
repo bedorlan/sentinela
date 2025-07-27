@@ -6,22 +6,16 @@
     "original": "https://www.youtube.com/watch?v=8JFaTq3eUpc"
   },
   {
-    "translation_key": "demo_security",
-    "file": "home_alone.mp4",
-    "prompt": "alert me if someone breaks into this house",
-    "original": "https://www.youtube.com/watch?v=6iIUNo3oKGQ"
-  },
-  {
     "translation_key": "demo_elderly",
     "file": "elderly.mp4",
     "prompt": "person falling to the ground",
     "original": "https://www.youtube.com/watch?v=ZSTflpwEPnw"
   },
   {
-    "translation_key": "demo_baby",
-    "file": "baby.mp4",
-    "prompt": "baby in danger",
-    "original": "https://www.youtube.com/watch?v=8MwC0u-orNw"
+    "translation_key": "demo_security",
+    "file": "home_alone.mp4",
+    "prompt": "alert me if someone breaks into this house",
+    "original": "https://www.youtube.com/watch?v=6iIUNo3oKGQ"
   },
   {
     "translation_key": "demo_industrial",
@@ -34,6 +28,12 @@
     "file": "gate.mp4",
     "prompt": "car at the gate with visible license plate. read the license plate",
     "original": "https://www.youtube.com/watch?v=ju8baHe6jwM"
+  },
+  {
+    "translation_key": "demo_baby",
+    "file": "baby.mp4",
+    "prompt": "baby in danger",
+    "original": "https://www.youtube.com/watch?v=8MwC0u-orNw"
   },
   {
     "translation_key": "demo_cat_sleeping",
