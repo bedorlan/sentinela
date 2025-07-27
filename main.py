@@ -231,7 +231,7 @@ def validate_environment():
     elif os.getenv("GOOGLE_API_KEY"):
         from src.google_ai_studio_inference import GoogleAIStudioInference
         inference_engine = GoogleAIStudioInference()
-    elif os.getenv("HF_TOKEN"):
+    elif os.getenv("HF_TOKEN") or os.getenv("HF_HUB_OFFLINE"):
         from src.gemma_local_inference import GemmaLocalInference
         inference_engine = GemmaLocalInference()
     else:
