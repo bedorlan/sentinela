@@ -17,6 +17,7 @@ import {
   useRotatingPlaceholder,
   useVideoDetection,
   useWatchingDuration,
+  WatchLogEventType,
 } from "./static/app-logic.js";
 
 function App() {
@@ -458,31 +459,33 @@ function MainUI({
                         <div
                           key={entry.id}
                           className={`p-2 rounded-lg border flex items-center justify-between ${
-                            entry.type === "detection"
+                            entry.type === WatchLogEventType.DETECTION
                               ? "bg-yellow-400/20 border-yellow-400/40"
-                              : entry.type === "start"
+                              : entry.type === WatchLogEventType.START
                               ? "bg-green-400/20 border-green-400/40"
-                              : entry.type === "stop"
+                              : entry.type === WatchLogEventType.STOP
                               ? "bg-red-400/20 border-red-400/40"
                               : "bg-white/5 border-white/20"
                           }`}
                         >
                           <div className="flex items-center gap-2 flex-1">
                             <span className="text-sm">
-                              {entry.type === "detection" && "🚨"}
-                              {entry.type === "start" && "▶️"}
-                              {entry.type === "stop" && "⏹️"}
-                              {entry.type === "update" && "✅"}
+                              {entry.type === WatchLogEventType.DETECTION &&
+                                "🚨"}
+                              {entry.type === WatchLogEventType.START && "▶️"}
+                              {entry.type === WatchLogEventType.STOP && "⏹️"}
+                              {entry.type === WatchLogEventType.UPDATE && "✅"}
                             </span>
                             <p className="text-xs text-gray-400">
                               {formattedTime}
                             </p>
                             <p className="text-sm">{entry.event}</p>
-                            {entry.type === "detection" && entry.confidence && (
-                              <span className="text-xs text-yellow-300 ml-2">
-                                ({Math.round(entry.confidence)}%)
-                              </span>
-                            )}
+                            {entry.type === WatchLogEventType.DETECTION &&
+                              entry.confidence && (
+                                <span className="text-xs text-yellow-300 ml-2">
+                                  ({Math.round(entry.confidence)}%)
+                                </span>
+                              )}
                           </div>
                         </div>
                       );

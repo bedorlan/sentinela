@@ -10,6 +10,13 @@ export const DetectionState = {
   DETECTED: "detected",
 };
 
+export const WatchLogEventType = {
+  START: "start",
+  STOP: "stop",
+  UPDATE: "update",
+  DETECTION: "detection",
+};
+
 const CONFIDENCE_THRESHOLD = 90;
 const CONSECUTIVE_DETECTIONS_REQUIRED = 2;
 
@@ -94,7 +101,7 @@ export function appReducer(draft, action) {
       draft.watchingLogs.unshift({
         id: generateLogId(),
         timestamp: new Date(),
-        type: "start",
+        type: WatchLogEventType.START,
         event: `Started watching (demo mode): ${action.payload.demo.prompt}`,
         prompt: action.payload.demo.prompt,
       });
@@ -130,7 +137,7 @@ export function appReducer(draft, action) {
         draft.watchingLogs.unshift({
           id: generateLogId(),
           timestamp: new Date(),
-          type: "update",
+          type: WatchLogEventType.UPDATE,
           event: action.payload.reason,
           confidence: action.payload.confidence,
           reason: action.payload.reason,
@@ -144,7 +151,7 @@ export function appReducer(draft, action) {
         draft.watchingLogs.unshift({
           id: generateLogId(),
           timestamp: new Date(),
-          type: "update",
+          type: WatchLogEventType.UPDATE,
           event: action.payload.reason,
           confidence: action.payload.confidence,
           reason: action.payload.reason,
@@ -159,7 +166,7 @@ export function appReducer(draft, action) {
       draft.watchingLogs.unshift({
         id: generateLogId(),
         timestamp: new Date(),
-        type: "detection",
+        type: WatchLogEventType.DETECTION,
         event: action.payload.reason,
         confidence: action.payload.confidence,
         reason: action.payload.reason,
@@ -232,7 +239,7 @@ export function appReducer(draft, action) {
       draft.watchingLogs.unshift({
         id: generateLogId(),
         timestamp: new Date(),
-        type: "start",
+        type: WatchLogEventType.START,
         event: `Started watching: ${draft.prompt}`,
         prompt: draft.prompt,
       });
@@ -244,7 +251,7 @@ export function appReducer(draft, action) {
       draft.watchingLogs.unshift({
         id: generateLogId(),
         timestamp: new Date(),
-        type: "stop",
+        type: WatchLogEventType.STOP,
         event: "Stopped watching",
         prompt: draft.prompt,
       });
