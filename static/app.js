@@ -155,6 +155,14 @@ function MainUI({
   const needsEmail = enabledNotifications.email && !hasValidEmail;
   const isWatchingButtonDisabled = !isWatching && (!prompt || needsEmail);
 
+  const filteredLogs = watchingLogs.filter(
+    (log) =>
+      log.type === WatchLogEventType.SUMMARY ||
+      log.type === WatchLogEventType.DETECTION ||
+      log.type === WatchLogEventType.START ||
+      log.type === WatchLogEventType.STOP,
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 text-white overflow-hidden relative">
       {/* Animated background stars */}
@@ -439,14 +447,14 @@ function MainUI({
             {!isLogCollapsed && (
               <>
                 <div className="space-y-2 max-h-96 overflow-y-auto mt-4">
-                  {watchingLogs.length === 0 ? (
+                  {filteredLogs.length === 0 ? (
                     <div className="text-center py-8 text-gray-400">
                       <p className="text-sm">
                         No logs yet. Start watching to see activity here.
                       </p>
                     </div>
                   ) : (
-                    watchingLogs.map((entry) => {
+                    filteredLogs.map((entry) => {
                       const formattedTime = new Date(
                         entry.timestamp,
                       ).toLocaleString("en-US", {
@@ -468,7 +476,7 @@ function MainUI({
                               : entry.type === WatchLogEventType.STOP
                               ? "bg-red-400/20 border-red-400/40"
                               : entry.type === WatchLogEventType.SUMMARY
-                              ? "bg-purple-400/20 border-purple-400/40"
+                              ? "bg-white/5 border-white/20"
                               : "bg-white/5 border-white/20"
                           }`}
                         >
@@ -485,9 +493,7 @@ function MainUI({
                               {formattedTime}
                             </p>
                             <p className="text-sm">
-                              {entry.summary ? (
-                                <span className="italic">{entry.summary}</span>
-                              ) : entry.reason ? (
+                              {entry.reason ? (
                                 <span className="italic">{entry.reason}</span>
                               ) : entry.type === WatchLogEventType.START ? (
                                 <>

@@ -4,6 +4,9 @@ import ruw from "react-use-websocket";
 
 const { default: useWebSocket } = ruw;
 
+const CONFIDENCE_THRESHOLD = 90;
+const CONSECUTIVE_DETECTIONS_REQUIRED = 2;
+
 export const DetectionState = {
   IDLE: "idle",
   WATCHING: "watching",
@@ -18,9 +21,14 @@ export const WatchLogEventType = {
   SUMMARY: "summary",
 };
 
-const CONFIDENCE_THRESHOLD = 90;
-const CONSECUTIVE_DETECTIONS_REQUIRED = 2;
-const LOGS_TO_SUMMARIZE_THRESHOLD = 60;
+const WatchLogSummaryLevel = {
+  SECOND: 0,
+  ONE_MINUTE: 1,
+  TEN_MINUTES: 2,
+  THIRTY_MINUTES: 3,
+  ONE_HOUR: 4,
+  TWO_HOURS: 5,
+};
 
 export const Events = Object.fromEntries(
   [
@@ -220,7 +228,8 @@ export function appReducer(draft, action) {
           id: generateLogId(),
           timestamp: new Date(),
           type: WatchLogEventType.SUMMARY,
-          summary: action.payload.summary,
+          reason: action.payload.summary,
+          summaryLevel: action.payload.summaryLevel,
         },
         ...draft.watchingLogs.filter((log) => !idsToRemove.has(log.id)),
       ];
@@ -668,24 +677,50 @@ export function useWatchingDuration(state) {
   return watchingDuration;
 }
 
+const SUMMARY_CONFIG = {
+  [WatchLogSummaryLevel.ONE_MINUTE]: {
+    threshold: 60,
+    sourceLevel: null,
+  },
+  [WatchLogSummaryLevel.TEN_MINUTES]: {
+    threshold: 10,
+    sourceLevel: WatchLogSummaryLevel.ONE_MINUTE,
+  },
+};
+
 export function useAutoSummarization(state, dispatch) {
-  const { watchingLogs, detectionState } = state;
-  const [isSummarizing, setIsSummarizing] = React.useState(false);
+  const { watchingLogs } = state;
+  const [summarizationStates, setSummarizationStates] = React.useState({
+    [WatchLogSummaryLevel.ONE_MINUTE]: { isSummarizing: false },
+    [WatchLogSummaryLevel.TEN_MINUTES]: { isSummarizing: false },
+  });
 
   useEffect(() => {
-    const summarizeLogs = async () => {
-      if (watchingLogs.length < LOGS_TO_SUMMARIZE_THRESHOLD || isSummarizing)
-        return;
+    const checkAndSummarizeLevel = async (level, config) => {
+      if (summarizationStates[level].isSummarizing) return;
 
-      const updateLogs = watchingLogs.filter(
-        (log) => log.type === WatchLogEventType.UPDATE,
-      );
-      if (updateLogs.length < LOGS_TO_SUMMARIZE_THRESHOLD) return;
+      let eligibleLogs;
+      if (config.sourceLevel === null) {
+        eligibleLogs = watchingLogs.filter(
+          (log) => log.type === WatchLogEventType.UPDATE,
+        );
+      } else {
+        eligibleLogs = watchingLogs.filter(
+          (log) =>
+            log.type === WatchLogEventType.SUMMARY &&
+            log.summaryLevel === config.sourceLevel,
+        );
+      }
 
-      const logsToSummarize = updateLogs.slice(-LOGS_TO_SUMMARIZE_THRESHOLD);
+      if (eligibleLogs.length < config.threshold) return;
+
+      const logsToSummarize = eligibleLogs.slice(-config.threshold);
       const logIds = logsToSummarize.map((log) => log.id);
 
-      setIsSummarizing(true);
+      setSummarizationStates((prev) => ({
+        ...prev,
+        [level]: { isSummarizing: true },
+      }));
 
       try {
         const response = await fetch("/summarize-watch-logs", {
@@ -707,19 +742,25 @@ export function useAutoSummarization(state, dispatch) {
           payload: {
             summary: data.summary,
             logIds: logIds,
+            summaryLevel: parseInt(level),
           },
         });
       } catch (error) {
-        console.error("Error summarizing logs:", error);
+        console.error(`Error summarizing logs for level ${level}:`, error);
       } finally {
-        setIsSummarizing(false);
+        setSummarizationStates((prev) => ({
+          ...prev,
+          [level]: { isSummarizing: false },
+        }));
       }
     };
 
-    summarizeLogs();
-  }, [watchingLogs.length, isSummarizing]);
+    Object.entries(SUMMARY_CONFIG).forEach(([level, config]) => {
+      checkAndSummarizeLevel(level, config);
+    });
+  }, [watchingLogs.length, summarizationStates]);
 
-  return { isSummarizing };
+  return { summarizationStates };
 }
 
 export function isValidEmail(email) {
