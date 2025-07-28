@@ -109,12 +109,14 @@ export function appReducer(draft, action) {
       draft.consecutiveDetections = 0;
       draft.reason = "";
       draft.watchingStartTime = Date.now();
-      draft.watchingLogs.unshift({
-        id: generateLogId(),
-        timestamp: new Date(),
-        type: WatchLogEventType.START,
-        prompt: action.payload.demo.prompt,
-      });
+      draft.watchingLogs = [
+        {
+          id: generateLogId(),
+          timestamp: new Date(),
+          type: WatchLogEventType.START,
+          prompt: action.payload.demo.prompt,
+        },
+      ];
       break;
 
     case Events.onDemosLoad:
@@ -264,12 +266,14 @@ export function appReducer(draft, action) {
       draft.reason = "";
       draft.lastVideoFrame = null;
       draft.watchingStartTime = Date.now();
-      draft.watchingLogs.unshift({
-        id: generateLogId(),
-        timestamp: new Date(),
-        type: WatchLogEventType.START,
-        prompt: draft.prompt,
-      });
+      draft.watchingLogs = [
+        {
+          id: generateLogId(),
+          timestamp: new Date(),
+          type: WatchLogEventType.START,
+          prompt: draft.prompt,
+        },
+      ];
       break;
 
     case Events.onWatchingStop:
@@ -679,11 +683,11 @@ export function useWatchingDuration(state) {
 
 const SUMMARY_CONFIG = {
   [WatchLogSummaryLevel.ONE_MINUTE]: {
-    threshold: 60,
+    timeWindow: 60 * 1000,
     sourceLevel: null,
   },
   [WatchLogSummaryLevel.TEN_MINUTES]: {
-    threshold: 10,
+    timeWindow: 10 * 60 * 1000,
     sourceLevel: WatchLogSummaryLevel.ONE_MINUTE,
   },
 };
@@ -691,13 +695,24 @@ const SUMMARY_CONFIG = {
 export function useAutoSummarization(state, dispatch) {
   const { watchingLogs } = state;
   const [summarizationStates, setSummarizationStates] = React.useState({
-    [WatchLogSummaryLevel.ONE_MINUTE]: { isSummarizing: false },
-    [WatchLogSummaryLevel.TEN_MINUTES]: { isSummarizing: false },
+    [WatchLogSummaryLevel.ONE_MINUTE]: {
+      isSummarizing: false,
+      lastSummarizedAt: Date.now(),
+    },
+    [WatchLogSummaryLevel.TEN_MINUTES]: {
+      isSummarizing: false,
+      lastSummarizedAt: Date.now(),
+    },
   });
 
   useEffect(() => {
     const checkAndSummarizeLevel = async (level, config) => {
       if (summarizationStates[level].isSummarizing) return;
+
+      const now = Date.now();
+      const lastSummarizedAt = summarizationStates[level].lastSummarizedAt;
+
+      if (now - lastSummarizedAt < config.timeWindow) return;
 
       let eligibleLogs;
       if (config.sourceLevel === null) {
@@ -712,14 +727,19 @@ export function useAutoSummarization(state, dispatch) {
         );
       }
 
-      if (eligibleLogs.length < config.threshold) return;
+      const timeWindowStart = now - config.timeWindow;
+      const logsInTimeWindow = eligibleLogs.filter(
+        (log) => new Date(log.timestamp).getTime() >= timeWindowStart,
+      );
 
-      const logsToSummarize = eligibleLogs.slice(-config.threshold);
+      if (logsInTimeWindow.length === 0) return;
+
+      const logsToSummarize = logsInTimeWindow;
       const logIds = logsToSummarize.map((log) => log.id);
 
       setSummarizationStates((prev) => ({
         ...prev,
-        [level]: { isSummarizing: true },
+        [level]: { ...prev[level], isSummarizing: true },
       }));
 
       try {
@@ -745,12 +765,16 @@ export function useAutoSummarization(state, dispatch) {
             summaryLevel: parseInt(level),
           },
         });
-      } catch (error) {
-        console.error(`Error summarizing logs for level ${level}:`, error);
-      } finally {
+
         setSummarizationStates((prev) => ({
           ...prev,
-          [level]: { isSummarizing: false },
+          [level]: { isSummarizing: false, lastSummarizedAt: now },
+        }));
+      } catch (error) {
+        console.error(`Error summarizing logs for level ${level}:`, error);
+        setSummarizationStates((prev) => ({
+          ...prev,
+          [level]: { ...prev[level], isSummarizing: false },
         }));
       }
     };
