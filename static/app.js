@@ -19,6 +19,7 @@ import {
   useVideoDetection,
   useWatchingDuration,
   WatchLogEventType,
+  WatchLogSummaryLevel,
 } from "./static/app-logic.js";
 
 function App() {
@@ -465,6 +466,23 @@ function MainUI({
                         hour12: true,
                       });
 
+                      const getSummaryLevelStyling = (level) => {
+                        switch (level) {
+                          case WatchLogSummaryLevel.ONE_MINUTE:
+                            return "bg-blue-400/10 border-blue-400/30";
+                          case WatchLogSummaryLevel.TEN_MINUTES:
+                            return "bg-purple-400/20 border-purple-400/40";
+                          case WatchLogSummaryLevel.THIRTY_MINUTES:
+                            return "bg-yellow-400/30 border-yellow-400/50 shadow-yellow-400/20 shadow-lg";
+                          case WatchLogSummaryLevel.ONE_HOUR:
+                            return "bg-orange-400/40 border-orange-400/60 shadow-orange-400/30 shadow-xl";
+                          case WatchLogSummaryLevel.TWO_HOURS:
+                            return "bg-red-400/50 border-red-400/70 shadow-red-400/40 shadow-2xl";
+                          default:
+                            return "bg-white/5 border-white/20";
+                        }
+                      };
+
                       return (
                         <div
                           key={entry.id}
@@ -476,7 +494,7 @@ function MainUI({
                               : entry.type === WatchLogEventType.STOP
                               ? "bg-red-400/20 border-red-400/40"
                               : entry.type === WatchLogEventType.SUMMARY
-                              ? "bg-white/5 border-white/20"
+                              ? getSummaryLevelStyling(entry.summaryLevel)
                               : "bg-white/5 border-white/20"
                           }`}
                         >
