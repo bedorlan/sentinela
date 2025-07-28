@@ -15,10 +15,12 @@ export const WatchLogEventType = {
   STOP: "stop",
   UPDATE: "update",
   DETECTION: "detection",
+  SUMMARY: "summary",
 };
 
 const CONFIDENCE_THRESHOLD = 90;
 const CONSECUTIVE_DETECTIONS_REQUIRED = 2;
+const LOGS_TO_SUMMARIZE_THRESHOLD = 60;
 
 export const Events = Object.fromEntries(
   [
@@ -36,6 +38,7 @@ export const Events = Object.fromEntries(
     "onLanguageLoadSuccess",
     "onLogAdd",
     "onLogClear",
+    "onLogSummarize",
     "onNotificationToggle",
     "onPlaceholderRotate",
     "onPromptChange",
@@ -195,6 +198,34 @@ export function appReducer(draft, action) {
       draft.isLoadingTranslation = false;
       break;
 
+    case Events.onLogAdd:
+      draft.watchingLogs.unshift({
+        id: generateLogId(),
+        timestamp: new Date(),
+        type: action.payload.type,
+        confidence: action.payload.confidence,
+        reason: action.payload.reason,
+        prompt: action.payload.prompt,
+      });
+      break;
+
+    case Events.onLogClear:
+      draft.watchingLogs = [];
+      break;
+
+    case Events.onLogSummarize:
+      const idsToRemove = new Set(action.payload.logIds);
+      draft.watchingLogs = [
+        {
+          id: generateLogId(),
+          timestamp: new Date(),
+          type: WatchLogEventType.SUMMARY,
+          summary: action.payload.summary,
+        },
+        ...draft.watchingLogs.filter((log) => !idsToRemove.has(log.id)),
+      ];
+      break;
+
     case Events.onNotificationToggle:
       draft.enabledNotifications[action.payload] =
         !draft.enabledNotifications[action.payload];
@@ -241,21 +272,6 @@ export function appReducer(draft, action) {
         type: WatchLogEventType.STOP,
         prompt: draft.prompt,
       });
-      break;
-
-    case Events.onLogAdd:
-      draft.watchingLogs.unshift({
-        id: generateLogId(),
-        timestamp: new Date(),
-        type: action.payload.type,
-        confidence: action.payload.confidence,
-        reason: action.payload.reason,
-        prompt: action.payload.prompt,
-      });
-      break;
-
-    case Events.onLogClear:
-      draft.watchingLogs = [];
       break;
   }
 }
@@ -650,6 +666,60 @@ export function useWatchingDuration(state) {
   }, [watchingStartTime, detectionState, texts]);
 
   return watchingDuration;
+}
+
+export function useAutoSummarization(state, dispatch) {
+  const { watchingLogs, detectionState } = state;
+  const [isSummarizing, setIsSummarizing] = React.useState(false);
+
+  useEffect(() => {
+    const summarizeLogs = async () => {
+      if (watchingLogs.length < LOGS_TO_SUMMARIZE_THRESHOLD || isSummarizing)
+        return;
+
+      const updateLogs = watchingLogs.filter(
+        (log) => log.type === WatchLogEventType.UPDATE,
+      );
+      if (updateLogs.length < LOGS_TO_SUMMARIZE_THRESHOLD) return;
+
+      const logsToSummarize = updateLogs.slice(-LOGS_TO_SUMMARIZE_THRESHOLD);
+      const logIds = logsToSummarize.map((log) => log.id);
+
+      setIsSummarizing(true);
+
+      try {
+        const response = await fetch("/summarize-watch-logs", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            events: logsToSummarize.map((log) => log.reason),
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        dispatch({
+          type: Events.onLogSummarize,
+          payload: {
+            summary: data.summary,
+            logIds: logIds,
+          },
+        });
+      } catch (error) {
+        console.error("Error summarizing logs:", error);
+      } finally {
+        setIsSummarizing(false);
+      }
+    };
+
+    summarizeLogs();
+  }, [watchingLogs.length, isSummarizing]);
+
+  return { isSummarizing };
 }
 
 export function isValidEmail(email) {

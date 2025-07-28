@@ -7,6 +7,7 @@ import {
   Events,
   initialState,
   isValidEmail,
+  useAutoSummarization,
   useCloseWarning,
   useDetectionReset,
   useDetectionSound,
@@ -42,6 +43,7 @@ function App() {
 
   const { placeholderText } = useRotatingPlaceholder(state, dispatch);
   const watchingDuration = useWatchingDuration(state);
+  useAutoSummarization(state, dispatch);
   useCloseWarning(state);
   useDetectionReset(state, dispatch);
   useDetectionSound(state, dispatch);
@@ -465,6 +467,8 @@ function MainUI({
                               ? "bg-green-400/20 border-green-400/40"
                               : entry.type === WatchLogEventType.STOP
                               ? "bg-red-400/20 border-red-400/40"
+                              : entry.type === WatchLogEventType.SUMMARY
+                              ? "bg-purple-400/20 border-purple-400/40"
                               : "bg-white/5 border-white/20"
                           }`}
                         >
@@ -475,12 +479,15 @@ function MainUI({
                               {entry.type === WatchLogEventType.START && "▶️"}
                               {entry.type === WatchLogEventType.STOP && "⏹️"}
                               {entry.type === WatchLogEventType.UPDATE && "✅"}
+                              {entry.type === WatchLogEventType.SUMMARY && "✅"}
                             </span>
                             <p className="text-xs text-gray-400">
                               {formattedTime}
                             </p>
                             <p className="text-sm">
-                              {entry.reason ? (
+                              {entry.summary ? (
+                                <span className="italic">{entry.summary}</span>
+                              ) : entry.reason ? (
                                 <span className="italic">{entry.reason}</span>
                               ) : entry.type === WatchLogEventType.START ? (
                                 <>

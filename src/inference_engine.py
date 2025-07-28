@@ -18,3 +18,15 @@ class InferenceEngine(Protocol):
             InferenceResponse: Response containing processing decision and metadata
         """
         ...
+    
+    async def summarize_watch_logs(self, events: List[str]) -> str:
+        """
+        Summarize watching log events into a single detailed sentence.
+        
+        Args:
+            events: List of event descriptions
+            
+        Returns:
+            str: Single sentence summarizing the events
+        """
+        ...

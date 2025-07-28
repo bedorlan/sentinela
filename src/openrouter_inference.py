@@ -145,3 +145,25 @@ class OpenRouterInference(InferenceEngine):
         except Exception as e:
             logger.error(f"Translation error: {str(e)}")
             raise Exception(f"Translation failed: {str(e)}")
+    
+    async def summarize_watch_logs(self, events: list) -> str:
+        """
+        Summarize watching log events into a single detailed sentence.
+        """
+        if not events:
+            return "No events to summarize"
+        
+        try:
+            prompt = util.create_summarization_prompt(events)
+            
+            messages = [{
+                "role": "user",
+                "content": prompt
+            }]
+            
+            response_text = await self._run_ai_inference(messages)
+            return response_text.strip()
+            
+        except Exception as e:
+            logger.error(f"Summarization error: {str(e)}")
+            raise Exception(f"Summarization failed: {str(e)}")

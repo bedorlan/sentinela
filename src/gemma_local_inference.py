@@ -121,3 +121,28 @@ class GemmaLocalInference(InferenceEngine):
             logger.error(f"Inference error: {str(e)}")
             return ""
     
+    async def summarize_watch_logs(self, events: list) -> str:
+        """
+        Summarize watching log events into a single detailed sentence.
+        """
+        if not events:
+            return "No events to summarize"
+        
+        try:
+            prompt = util.create_summarization_prompt(events)
+            
+            messages = [
+                {
+                    "role": "user",
+                    "content": prompt,
+                },
+            ]
+            
+            output = self.pipe(text=messages, max_new_tokens=100)
+            answer = output[0]["generated_text"][-1]["content"]
+            return answer.strip()
+            
+        except Exception as e:
+            logger.error(f"Summarization error: {str(e)}")
+            raise Exception(f"Summarization failed: {str(e)}")
+    

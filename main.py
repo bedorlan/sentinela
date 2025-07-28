@@ -8,6 +8,7 @@ from src.email_service import EmailService
 from src.inference_engine import InferenceEngine
 from src.model.email_request import EmailRequest
 from src.model.session import Session
+from src.model.watch_log_request import WatchLogSummaryRequest, WatchLogSummaryResponse
 import asyncio
 import json
 import logging
@@ -217,6 +218,20 @@ async def send_email(email_request: EmailRequest, username: str = Depends(authen
         return result
     else:
         raise HTTPException(status_code=500, detail=result["error"])
+
+@app.post("/summarize-watch-logs", response_model=WatchLogSummaryResponse)
+async def summarize_watch_logs(request: WatchLogSummaryRequest, username: str = Depends(authenticate)):
+    """Summarize watching log events into a single detailed sentence"""
+    if not request.events:
+        raise HTTPException(status_code=400, detail="No events provided")
+    
+    try:
+        summary = await inference_engine.summarize_watch_logs(request.events)
+        return WatchLogSummaryResponse(summary=summary)
+        
+    except Exception as e:
+        logger.error(f"Summarization error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Summarization failed: {str(e)}")
 
 def validate_environment():
     if is_server_mode and not os.getenv("GUEST_PASSWORD"):
