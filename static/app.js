@@ -15,6 +15,7 @@ import {
   useInitLoader,
   useLanguageLoader,
   useLoadDemos,
+  usePeriodicEmailUpdates,
   useRotatingPlaceholder,
   useVideoDetection,
   useWatchingDuration,
@@ -31,6 +32,7 @@ function App() {
     demoMode,
     demos,
     detectionState,
+    emailUpdateInterval,
     enabledNotifications,
     fps,
     imageQuality,
@@ -52,6 +54,7 @@ function App() {
   useInitLoader(state, dispatch);
   useLanguageLoader(state, dispatch);
   useLoadDemos(state, dispatch);
+  usePeriodicEmailUpdates(state, dispatch);
   useVideoDetection(state, dispatch);
 
   const isWatching =
@@ -65,6 +68,7 @@ function App() {
       demoMode={demoMode}
       demos={demos}
       detectionState={detectionState}
+      emailUpdateInterval={emailUpdateInterval}
       enabledNotifications={enabledNotifications}
       fps={fps}
       imageQuality={imageQuality}
@@ -83,6 +87,9 @@ function App() {
         dispatch({ type: Events.onDemoStart, payload: { demo } });
         console.log(`Starting demo: ${demo.demo_name}`);
       }}
+      onEmailUpdateIntervalChange={(level) =>
+        dispatch({ type: Events.onEmailUpdateIntervalChange, payload: level })
+      }
       onHandleFrame={(blob) =>
         dispatch({ type: Events.onVideoFrame, payload: blob })
       }
@@ -126,6 +133,7 @@ function MainUI({
   demoMode,
   demos,
   detectionState,
+  emailUpdateInterval,
   enabledNotifications,
   fps,
   imageQuality,
@@ -141,6 +149,7 @@ function MainUI({
   watchingLogs,
   // events
   onDemoSelect,
+  onEmailUpdateIntervalChange,
   onHandleFrame,
   onLanguageSwitch,
   onModeToggle,
@@ -389,17 +398,28 @@ function MainUI({
                   {[
                     {
                       label: "Every 30 mins",
-                      value: "0.5",
-                      key: "email_30mins",
+                      level: WatchLogSummaryLevel.THIRTY_MINUTES,
                     },
-                    { label: "Every hour", value: "1", key: "email_1hour" },
-                    { label: "Every 2 hours", value: "2", key: "email_2hours" },
+                    {
+                      label: "Every hour",
+                      level: WatchLogSummaryLevel.ONE_HOUR,
+                    },
+                    {
+                      label: "Every 2 hours",
+                      level: WatchLogSummaryLevel.TWO_HOURS,
+                    },
                   ].map((option) => (
                     <button
-                      key={option.value}
-                      onClick={() => onNotificationToggle(option.key)}
+                      key={option.level}
+                      onClick={() =>
+                        onEmailUpdateIntervalChange(
+                          emailUpdateInterval === option.level
+                            ? null
+                            : option.level,
+                        )
+                      }
                       className={`p-3 rounded-xl border transition-all hover:scale-105 ${
-                        enabledNotifications[option.key]
+                        emailUpdateInterval === option.level
                           ? "bg-yellow-400/30 border-yellow-400 hover:bg-yellow-400/40"
                           : "bg-white/10 hover:bg-white/20 border-white/30"
                       }`}

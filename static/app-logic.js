@@ -37,6 +37,7 @@ export const Events = Object.fromEntries(
     "onDemoStart",
     "onDetectionReset",
     "onDetectionUpdate",
+    "onEmailUpdateIntervalChange",
     "onFpsChange",
     "onImageQualityChange",
     "onInitLoad",
@@ -70,6 +71,7 @@ export const initialState = {
     sound: true,
     email: false,
   },
+  emailUpdateInterval: null,
   fps: 3,
   imageQuality: 0.9,
   isLoadingTranslation: false,
@@ -173,6 +175,10 @@ export function appReducer(draft, action) {
         reason: action.payload.reason,
         prompt: draft.prompt,
       });
+      break;
+
+    case Events.onEmailUpdateIntervalChange:
+      draft.emailUpdateInterval = action.payload;
       break;
 
     case Events.onFpsChange:
@@ -605,6 +611,85 @@ export function useEmailNotification(state, dispatch) {
   ]);
 }
 
+export function usePeriodicEmailUpdates(state, dispatch) {
+  const {
+    emailUpdateInterval,
+    watchingLogs,
+    detectionState,
+    enabledNotifications,
+    toEmailAddress,
+    prompt,
+    watchingStartTime,
+  } = state;
+
+  const [lastPeriodicEmailSent, setLastPeriodicEmailSent] =
+    React.useState(watchingStartTime);
+
+  useEffect(() => {
+    if (watchingStartTime) {
+      setLastPeriodicEmailSent(watchingStartTime);
+    }
+  }, [watchingStartTime]);
+
+  useEffect(() => {
+    if (
+      !emailUpdateInterval ||
+      detectionState !== DetectionState.WATCHING ||
+      !enabledNotifications.email ||
+      !watchingStartTime
+    ) {
+      return;
+    }
+
+    const now = Date.now();
+    const timeWindow = SUMMARY_TIME_WINDOWS[emailUpdateInterval].timeWindow;
+
+    if (now - lastPeriodicEmailSent < timeWindow) {
+      return;
+    }
+
+    const latestSummary = watchingLogs
+      .filter(
+        (log) =>
+          log.type === WatchLogEventType.SUMMARY &&
+          log.summaryLevel === emailUpdateInterval &&
+          new Date(log.timestamp).getTime() > lastPeriodicEmailSent,
+      )
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))[0];
+
+    if (!latestSummary) {
+      return;
+    }
+
+    const sendEmail = async () => {
+      try {
+        await sendPeriodicUpdateEmail({
+          toEmailAddress,
+          prompt,
+          durationText: formatWatchingDuration(watchingStartTime),
+          detectionCount: countDetections(watchingLogs),
+          summaryText: latestSummary.reason,
+        });
+
+        setLastPeriodicEmailSent(new Date(latestSummary.timestamp).getTime());
+      } catch (error) {
+        console.error("Error sending periodic email:", error);
+      }
+    };
+
+    sendEmail();
+  }, [
+    watchingLogs,
+    emailUpdateInterval,
+    detectionState,
+    enabledNotifications.email,
+    watchingStartTime,
+    toEmailAddress,
+    prompt,
+    lastPeriodicEmailSent,
+  ]);
+}
+
 export function useInitLoader(state, dispatch) {
   useEffect(() => {
     const loadInitData = async () => {
@@ -681,7 +766,7 @@ export function useWatchingDuration(state) {
   return watchingDuration;
 }
 
-const SUMMARY_CONFIG = {
+const SUMMARY_TIME_WINDOWS = {
   [WatchLogSummaryLevel.ONE_MINUTE]: { timeWindow: 60 * 1000 },
   [WatchLogSummaryLevel.TEN_MINUTES]: { timeWindow: 10 * 60 * 1000 },
   [WatchLogSummaryLevel.THIRTY_MINUTES]: { timeWindow: 30 * 60 * 1000 },
@@ -694,7 +779,7 @@ export function useAutoSummarization(state, dispatch) {
   const [isSummarizing, setIsSummarizing] = React.useState(false);
   const [lastSummarizedAt, setLastSummarizedAt] = React.useState(() =>
     Object.fromEntries(
-      Object.keys(SUMMARY_CONFIG).map((level) => [level, Date.now()]),
+      Object.keys(SUMMARY_TIME_WINDOWS).map((level) => [level, Date.now()]),
     ),
   );
 
@@ -702,7 +787,7 @@ export function useAutoSummarization(state, dispatch) {
     if (watchingStartTime) {
       setLastSummarizedAt(
         Object.fromEntries(
-          Object.keys(SUMMARY_CONFIG).map((level) => [
+          Object.keys(SUMMARY_TIME_WINDOWS).map((level) => [
             level,
             watchingStartTime,
           ]),
@@ -714,7 +799,7 @@ export function useAutoSummarization(state, dispatch) {
   useEffect(() => {
     const processSummarization = async (level) => {
       try {
-        const config = SUMMARY_CONFIG[level];
+        const config = SUMMARY_TIME_WINDOWS[level];
         const currentLevel = parseInt(level);
         const eligibleLogs = watchingLogs.filter(
           (log) =>
@@ -761,7 +846,7 @@ export function useAutoSummarization(state, dispatch) {
           const updated = { ...prev };
           const currentLevel = parseInt(level);
 
-          Object.keys(SUMMARY_CONFIG).forEach((configLevel) => {
+          Object.keys(SUMMARY_TIME_WINDOWS).forEach((configLevel) => {
             if (parseInt(configLevel) <= currentLevel) {
               updated[configLevel] = now;
             }
@@ -783,7 +868,7 @@ export function useAutoSummarization(state, dispatch) {
       if (isSummarizing) return;
 
       const now = Date.now();
-      const sortedLevels = Object.entries(SUMMARY_CONFIG).sort(
+      const sortedLevels = Object.entries(SUMMARY_TIME_WINDOWS).sort(
         ([a], [b]) => parseInt(b) - parseInt(a),
       );
 
@@ -801,6 +886,52 @@ export function useAutoSummarization(state, dispatch) {
   }, [watchingLogs.length, isSummarizing, lastSummarizedAt]);
 
   return { isSummarizing };
+}
+
+async function sendPeriodicUpdateEmail({
+  toEmailAddress,
+  prompt,
+  durationText,
+  detectionCount,
+  summaryText,
+}) {
+  const emailData = {
+    subject: `Sentinela Update - Still Watching (${durationText})`,
+    html_body: `
+      <h2>👁️ Watching Session Update</h2>
+      <p><strong>Watching:</strong> ${prompt}</p>
+      <p><strong>Duration:</strong> ${durationText}</p>
+      <p><strong>Detections:</strong> ${detectionCount}</p>
+      <hr>
+      <h3>Recent Activity Summary:</h3>
+      <p>${summaryText}</p>
+    `,
+    to_email: toEmailAddress,
+  };
+
+  const response = await fetch("/send-email", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(emailData),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to send email: ${response.status}`);
+  }
+
+  return response;
+}
+
+function formatWatchingDuration(startTime, currentTime = Date.now()) {
+  const durationSeconds = Math.floor((currentTime - startTime) / 1000);
+  const hours = Math.floor(durationSeconds / 3600);
+  const minutes = Math.floor((durationSeconds % 3600) / 60);
+  return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+}
+
+function countDetections(watchingLogs) {
+  return watchingLogs.filter((log) => log.type === WatchLogEventType.DETECTION)
+    .length;
 }
 
 export function isValidEmail(email) {
