@@ -38,7 +38,7 @@
   {
     "translation_key": "demo_cat_sleeping",
     "file": "cat.mp4",
-    "prompt": "my cat is finally awake",
+    "prompt": "cat not sleeping",
     "original": "https://www.youtube.com/watch?v=q6nnacxDOUQ"
   },
   {
