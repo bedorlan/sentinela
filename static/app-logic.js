@@ -690,13 +690,26 @@ const SUMMARY_CONFIG = {
 };
 
 export function useAutoSummarization(state, dispatch) {
-  const { watchingLogs } = state;
+  const { watchingLogs, watchingStartTime } = state;
   const [isSummarizing, setIsSummarizing] = React.useState(false);
   const [lastSummarizedAt, setLastSummarizedAt] = React.useState(() =>
     Object.fromEntries(
       Object.keys(SUMMARY_CONFIG).map((level) => [level, Date.now()]),
     ),
   );
+
+  useEffect(() => {
+    if (watchingStartTime) {
+      setLastSummarizedAt(
+        Object.fromEntries(
+          Object.keys(SUMMARY_CONFIG).map((level) => [
+            level,
+            watchingStartTime,
+          ]),
+        ),
+      );
+    }
+  }, [watchingStartTime]);
 
   useEffect(() => {
     const processSummarization = async (level) => {
