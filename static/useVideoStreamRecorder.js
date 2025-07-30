@@ -12,11 +12,9 @@ export function useVideoStreamRecorder(state, dispatch) {
   const detectionRecorderRef = useRef(null);
   const rotationIntervalRef = useRef(null);
 
-  const stopRecorder = useCallback((recorder) => {
-    if (recorder && recorder.state !== "inactive") {
-      recorder.stop();
-    }
-  }, []);
+  const isRecordingActive =
+    detectionState === DetectionState.WATCHING ||
+    detectionState === DetectionState.DETECTED;
 
   const startNewRecorder = useCallback(() => {
     if (!videoRef?.current?.srcObject || !isVideoStreamReady) return null;
@@ -34,7 +32,6 @@ export function useVideoStreamRecorder(state, dispatch) {
     recorder.onstop = () => {
       if (chunks.length > 0) {
         const blob = new Blob(chunks, { type: "video/webm" });
-        recorder.videoBlob = blob;
         if (recorder.onBlobReady) {
           recorder.onBlobReady(blob);
         }
@@ -42,9 +39,14 @@ export function useVideoStreamRecorder(state, dispatch) {
     };
 
     recorder.start();
-    recorder.startTime = Date.now();
     return recorder;
   }, [videoRef, isVideoStreamReady]);
+
+  const stopRecorder = useCallback((recorder) => {
+    if (recorder && recorder.state !== "inactive") {
+      recorder.stop();
+    }
+  }, []);
 
   const rotateRecorders = useCallback(() => {
     const newRecorder = startNewRecorder();
@@ -60,17 +62,10 @@ export function useVideoStreamRecorder(state, dispatch) {
 
   useEffect(
     function manageRecordingRotation() {
-      const isRecordingActive =
-        detectionState === DetectionState.WATCHING ||
-        detectionState === DetectionState.DETECTED;
-
       if (isVideoStreamReady && isRecordingActive) {
         recordersRef.current = [];
-        const firstRecorder = startNewRecorder();
-        if (firstRecorder) {
-          recordersRef.current.push(firstRecorder);
-        }
 
+        rotateRecorders();
         rotationIntervalRef.current = setInterval(
           rotateRecorders,
           RECORDING_ROTATION_INTERVAL,
@@ -88,13 +83,15 @@ export function useVideoStreamRecorder(state, dispatch) {
       return () => {
         if (rotationIntervalRef.current) {
           clearInterval(rotationIntervalRef.current);
+          rotationIntervalRef.current = null;
         }
         recordersRef.current.forEach(stopRecorder);
+        recordersRef.current = [];
       };
     },
     [
       isVideoStreamReady,
-      detectionState,
+      isRecordingActive,
       startNewRecorder,
       rotateRecorders,
       stopRecorder,
