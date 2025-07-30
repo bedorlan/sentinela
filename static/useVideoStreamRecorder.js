@@ -20,7 +20,7 @@ export function useVideoStreamRecorder(state, dispatch) {
     if (!videoRef?.current?.srcObject || !isVideoStreamReady) return null;
 
     const stream = videoRef.current.srcObject;
-    const recorder = new MediaRecorder(stream, { mimeType: "video/webm" });
+    const recorder = new MediaRecorder(stream, { mimeType: "video/mp4" });
 
     const chunks = [];
     recorder.ondataavailable = (e) => {
@@ -31,7 +31,7 @@ export function useVideoStreamRecorder(state, dispatch) {
 
     recorder.onstop = () => {
       if (chunks.length > 0) {
-        const blob = new Blob(chunks, { type: "video/webm" });
+        const blob = new Blob(chunks, { type: "video/mp4" });
         if (recorder.onBlobReady) {
           recorder.onBlobReady(blob);
         }

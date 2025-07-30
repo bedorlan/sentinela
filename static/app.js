@@ -563,7 +563,7 @@ function MainUI({
                                   )
                                     .toISOString()
                                     .slice(0, 19)
-                                    .replace(/:/g, "-")}.webm`}
+                                    .replace(/:/g, "-")}.mp4`}
                                   className="inline-flex items-center space-x-1 px-3 py-1 bg-blue-500/20 hover:bg-blue-500/30 rounded-lg border border-blue-400/30 hover:border-blue-400/50 transition-all text-xs text-blue-200 hover:text-blue-100"
                                 >
                                   <span>⬇️</span>
