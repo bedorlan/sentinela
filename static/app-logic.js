@@ -5,6 +5,7 @@ import {
   Events,
   WatchLogEventType,
 } from "./constants.js";
+import { generateLogId } from "./utils.js";
 
 export function appReducer(draft, action) {
   switch (action.type) {
@@ -213,14 +214,4 @@ export function appReducer(draft, action) {
       });
       break;
   }
-}
-
-export function isValidEmail(email) {
-  if (!email || typeof email !== "string") return false;
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email.trim());
-}
-
-function generateLogId() {
-  return `log-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 }

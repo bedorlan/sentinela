@@ -1,7 +1,7 @@
 import { createRoot } from "react-dom";
 import { useImmerReducer } from "use-immer";
 import React, { useEffect, useCallback } from "react";
-import { appReducer, isValidEmail } from "./static/app-logic.js";
+import { appReducer } from "./static/app-logic.js";
 import {
   DetectionState,
   Events,
@@ -9,6 +9,7 @@ import {
   WatchLogEventType,
   WatchLogSummaryLevel,
 } from "./static/constants.js";
+import { isValidEmail } from "./static/utils.js";
 import { useAutoSummarization } from "./static/useAutoSummarization.js";
 import { useCloseWarning } from "./static/useCloseWarning.js";
 import { useDetectionReset } from "./static/useDetectionReset.js";

@@ -19,6 +19,16 @@ export function countDetections(watchingLogs) {
     .length;
 }
 
+export function isValidEmail(email) {
+  if (!email || typeof email !== "string") return false;
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email.trim());
+}
+
+export function generateLogId() {
+  return `log-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
+}
+
 export async function sendPeriodicUpdateEmail({
   toEmailAddress,
   prompt,
