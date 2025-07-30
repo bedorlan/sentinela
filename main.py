@@ -23,6 +23,7 @@ FRAMES_PER_INFERENCE = 6
 FRAME_BUFFER_SIZE = 9
 
 is_server_mode = os.getenv("SENTINELA_SERVER_MODE") == '1'
+disable_authentication = os.getenv("DISABLE_AUTHENTICATION") == '1'
 server_path_prefix = os.getenv("SERVER_PATH_PREFIX", "")
 
 logger = logging.getLogger(__name__)
@@ -32,7 +33,7 @@ sessions: dict[str, Session] = {}
 inference_engine: InferenceEngine = None
 email_service = EmailService()
 
-if is_server_mode:
+if is_server_mode and not disable_authentication:
     security = HTTPBasic()
     def authenticate(credentials: HTTPBasicCredentials = Depends(security)):
         guest_password = os.getenv("GUEST_PASSWORD")
