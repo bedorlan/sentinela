@@ -5,3 +5,4 @@ class EmailRequest(BaseModel):
     subject: str
     html_body: Optional[str] = None
     to_email: str
+    video_attachment: Optional[str] = None

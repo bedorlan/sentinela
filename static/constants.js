@@ -11,6 +11,7 @@ export const Events = Object.fromEntries(
     "onDetectionReset",
     "onDetectionUpdate",
     "onDetectionVideoClip",
+    "onEmailNotificationSent",
     "onEmailUpdateIntervalChange",
     "onFpsChange",
     "onImageQualityChange",

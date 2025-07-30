@@ -114,15 +114,18 @@ export function useVideoStreamRecorder(state, dispatch) {
         if (!detectionRecorderRef.current) return;
 
         detectionRecorderRef.current.onBlobReady = (blob) => {
-          const url = URL.createObjectURL(blob);
-          dispatch({
-            type: Events.onDetectionVideoClip,
-            payload: {
-              videoUrl: url,
-              videoBlob: blob,
-            },
-          });
-          detectionRecorderRef.current = null;
+          const reader = new FileReader();
+          reader.onload = () => {
+            const dataUrl = reader.result;
+            dispatch({
+              type: Events.onDetectionVideoClip,
+              payload: {
+                videoUrl: dataUrl,
+              },
+            });
+            detectionRecorderRef.current = null;
+          };
+          reader.readAsDataURL(blob);
         };
 
         stopRecorder(detectionRecorderRef.current);

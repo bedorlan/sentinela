@@ -216,7 +216,8 @@ async def send_email(email_request: EmailRequest, username: str = Depends(authen
     result = email_service.send_email(
         subject=email_request.subject,
         to_email=email_request.to_email,
-        html_body=email_request.html_body
+        html_body=email_request.html_body,
+        video_attachment=email_request.video_attachment,
     )
     
     if result["success"]:

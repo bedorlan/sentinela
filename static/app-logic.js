@@ -49,6 +49,7 @@ export function appReducer(draft, action) {
     case Events.onDetectionReset:
       if (draft.detectionState === DetectionState.DETECTED) {
         draft.detectionState = DetectionState.WATCHING;
+        draft.confidence = 0;
         draft.consecutiveDetections = 0;
       }
       break;
@@ -104,6 +105,15 @@ export function appReducer(draft, action) {
       );
       if (detectionLog) {
         detectionLog.videoUrl = action.payload.videoUrl;
+      }
+      break;
+
+    case Events.onEmailNotificationSent:
+      const logToUpdate = draft.watchingLogs.find(
+        (log) => log.id === action.payload.logId,
+      );
+      if (logToUpdate) {
+        logToUpdate.emailNotificationSent = true;
       }
       break;
 
