@@ -3,18 +3,8 @@ import {
   CONSECUTIVE_DETECTIONS_REQUIRED,
   DetectionState,
   Events,
-  initialState,
   WatchLogEventType,
-  WatchLogSummaryLevel,
 } from "./constants.js";
-
-export {
-  DetectionState,
-  Events,
-  initialState,
-  WatchLogEventType,
-  WatchLogSummaryLevel,
-};
 
 export function appReducer(draft, action) {
   switch (action.type) {
