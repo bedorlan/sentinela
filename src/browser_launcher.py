@@ -6,11 +6,11 @@ import time
 
 logger = logging.getLogger(__name__)
 
-async def launch_browser(port: int):
+async def launch_browser(port: int, path_prefix: str = ""):
     await asyncio.sleep(2)
     logger.info("launching browser")
 
-    url = f'http://localhost:{port}?t={int(time.time())}'
+    url = f'http://localhost:{port}{path_prefix}?t={int(time.time())}'
     system = platform.system().lower()
     chrome_args = [
         f"--app={url}",

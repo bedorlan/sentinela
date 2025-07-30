@@ -1,6 +1,7 @@
 from datetime import datetime
 from fastapi import FastAPI, WebSocket, Depends, HTTPException, Cookie, Response
 from fastapi.responses import FileResponse
+from fastapi.routing import APIRouter
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.staticfiles import StaticFiles
 from src.browser_launcher import launch_browser
@@ -21,12 +22,15 @@ HTTP_SERVER_PORT = 8000
 FRAMES_PER_INFERENCE = 6
 FRAME_BUFFER_SIZE = 9
 
+is_server_mode = os.getenv("SENTINELA_SERVER_MODE") == '1'
+server_path_prefix = os.getenv("SERVER_PATH_PREFIX", "")
+
 logger = logging.getLogger(__name__)
 app = FastAPI()
+router = APIRouter(prefix=server_path_prefix)
 sessions: dict[str, Session] = {}
 inference_engine: InferenceEngine = None
 email_service = EmailService()
-is_server_mode = os.getenv("SENTINELA_SERVER_MODE") == '1'
 
 if is_server_mode:
     security = HTTPBasic()
@@ -42,22 +46,22 @@ if is_server_mode:
 else:
     def authenticate():
         return "local_user"
-    
-app.mount("/static", StaticFiles(directory="static"), name="static")
 
-@app.get("/")
+app.mount(f"{server_path_prefix}/static", StaticFiles(directory="static"), name="static")
+    
+@router.get("/")
 async def read_root(username: str = Depends(authenticate)):
     return FileResponse("static/index.html")
 
-@app.get("/favicon.ico")
+@router.get("/favicon.ico")
 async def read_icon():
     return FileResponse("static/favicon.ico")
 
-@app.get("/health")
+@router.get("/health")
 async def health_check():
     return {"status": "healthy"}
 
-@app.get("/init")
+@router.get("/init")
 async def init_endpoint(username: str = Depends(authenticate), session_id: str = Cookie(None)):
     if not session_id or session_id not in sessions:
         session_id = str(uuid.uuid4())
@@ -80,7 +84,7 @@ async def init_endpoint(username: str = Depends(authenticate), session_id: str =
     )
     return response
 
-@app.get("/translations/{language}")
+@router.get("/translations/{language}")
 async def get_translations(language: str, username: str = Depends(authenticate)):
     """Get translations for the specified language"""
     try:
@@ -111,7 +115,7 @@ async def get_translations(language: str, username: str = Depends(authenticate))
         logger.error(f"Translation error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Translation failed: {str(e)}")
 
-@app.websocket("/ws/frames")
+@router.websocket("/ws/frames")
 async def websocket_frames(websocket: WebSocket):
     session_id = None
     cookies = websocket.headers.get("cookie")
@@ -205,7 +209,7 @@ async def inference_worker(websocket: WebSocket, session_info: Session):
         except Exception as e:
             logger.error(f"Inference worker error: {e}")
 
-@app.post("/send-email")
+@router.post("/send-email")
 async def send_email(email_request: EmailRequest, username: str = Depends(authenticate)):
     """Send an email using SMTP"""
     result = email_service.send_email(
@@ -219,7 +223,7 @@ async def send_email(email_request: EmailRequest, username: str = Depends(authen
     else:
         raise HTTPException(status_code=500, detail=result["error"])
 
-@app.post("/summarize-watch-logs", response_model=WatchLogSummaryResponse)
+@router.post("/summarize-watch-logs", response_model=WatchLogSummaryResponse)
 async def summarize_watch_logs(request: WatchLogSummaryRequest, username: str = Depends(authenticate)):
     """Summarize watching log events into a single detailed sentence"""
     if not request.events:
@@ -232,6 +236,8 @@ async def summarize_watch_logs(request: WatchLogSummaryRequest, username: str = 
     except Exception as e:
         logger.error(f"Summarization error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Summarization failed: {str(e)}")
+
+app.include_router(router)
 
 def validate_environment():
     if is_server_mode and not os.getenv("GUEST_PASSWORD"):
@@ -272,7 +278,7 @@ if __name__ == "__main__":
     if not is_server_mode:
         @app.on_event("startup")
         def startup_event():
-            asyncio.create_task(launch_browser(HTTP_SERVER_PORT))
+            asyncio.create_task(launch_browser(HTTP_SERVER_PORT, server_path_prefix))
     
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=HTTP_SERVER_PORT, log_config=None)

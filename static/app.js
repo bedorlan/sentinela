@@ -7,6 +7,7 @@ import {
   Events,
   initialState,
   isValidEmail,
+  serverPathPrefix,
   useAutoSummarization,
   useCloseWarning,
   useDetectionReset,
@@ -772,7 +773,7 @@ function VideoCamera({
     const setupImageCapture = async () => {
       if (demoMode && currentDemo) {
         if (cameraRef.current) {
-          cameraRef.current.src = `/static/demos/${currentDemo.file}`;
+          cameraRef.current.src = `${serverPathPrefix}/static/demos/${currentDemo.file}`;
           cameraRef.current.loop = false;
           cameraRef.current.muted = true;
 

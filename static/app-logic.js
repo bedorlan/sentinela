@@ -7,6 +7,8 @@ const { default: useWebSocket } = ruw;
 const CONFIDENCE_THRESHOLD = 90;
 const CONSECUTIVE_DETECTIONS_REQUIRED = 2;
 
+export const serverPathPrefix = getPathPrefix();
+
 export const DetectionState = {
   IDLE: "idle",
   WATCHING: "watching",
@@ -322,7 +324,7 @@ export function useRotatingPlaceholder(state, dispatch) {
 
 export function useLoadDemos(state, dispatch) {
   useEffect(() => {
-    fetch("/static/demos/demos.json")
+    fetch(`${serverPathPrefix}/static/demos/demos.json`)
       .then((response) => response.json())
       .then((data) => dispatch({ type: Events.onDemosLoad, payload: data }))
       .catch((error) => console.error("Error loading demos:", error));
@@ -334,7 +336,9 @@ export function useDetectionSound(state, dispatch) {
   const { detectionState, enabledNotifications } = state;
 
   useEffect(() => {
-    detectionSoundRef.current = new Audio("/static/sound/detected.mp3");
+    detectionSoundRef.current = new Audio(
+      `${serverPathPrefix}/static/sound/detected.mp3`,
+    );
     detectionSoundRef.current.preload = "auto";
   }, []);
 
@@ -406,7 +410,9 @@ export function useLanguageLoader(state, dispatch) {
     ) {
       const prefetchTranslation = async () => {
         try {
-          const response = await fetch(`/translations/${languageCode}`);
+          const response = await fetch(
+            `${serverPathPrefix}/translations/${languageCode}`,
+          );
           if (!response.ok) {
             throw new Error(`Prefetch failed: ${response.status}`);
           }
@@ -445,7 +451,9 @@ export function useLanguageLoader(state, dispatch) {
       try {
         dispatch({ type: Events.onLanguageLoadStart });
 
-        const response = await fetch(`/translations/${currentLanguage}`);
+        const response = await fetch(
+          `${serverPathPrefix}/translations/${currentLanguage}`,
+        );
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
           const errorMessage =
@@ -481,7 +489,7 @@ export function useVideoDetection(state, dispatch) {
     detectionState === DetectionState.DETECTED;
   const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
   const wsUrl = isWatching
-    ? `${wsProtocol}//${window.location.host}/ws/frames`
+    ? `${wsProtocol}//${window.location.host}${serverPathPrefix}/ws/frames`
     : null;
 
   const { sendMessage, lastMessage, readyState } = useWebSocket(wsUrl, {
@@ -584,7 +592,7 @@ export function useEmailNotification(state, dispatch) {
       };
 
       try {
-        const response = await fetch("/send-email", {
+        const response = await fetch(`${serverPathPrefix}/send-email`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(emailData),
@@ -694,7 +702,7 @@ export function useInitLoader(state, dispatch) {
   useEffect(() => {
     const loadInitData = async () => {
       try {
-        const response = await fetch("/init");
+        const response = await fetch(`${serverPathPrefix}/init`);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -819,13 +827,16 @@ export function useAutoSummarization(state, dispatch) {
         }
 
         setIsSummarizing(true);
-        const response = await fetch("/summarize-watch-logs", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            events: logsInTimeWindow.map((log) => log.reason),
-          }),
-        });
+        const response = await fetch(
+          `${serverPathPrefix}/summarize-watch-logs`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              events: logsInTimeWindow.map((log) => log.reason),
+            }),
+          },
+        );
 
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -920,6 +931,13 @@ async function sendPeriodicUpdateEmail({
   }
 
   return response;
+}
+
+function getPathPrefix() {
+  const path = window.location.pathname;
+  const segments = path.split("/").filter((segment) => segment.length > 0);
+  if (segments.length === 0) return "";
+  return `/${segments[0]}`;
 }
 
 function formatWatchingDuration(startTime, currentTime = Date.now()) {
