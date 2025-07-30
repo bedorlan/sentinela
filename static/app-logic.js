@@ -32,6 +32,14 @@ export const WatchLogSummaryLevel = {
   TWO_HOURS: 5,
 };
 
+const SUMMARY_TIME_WINDOWS = {
+  [WatchLogSummaryLevel.ONE_MINUTE]: { timeWindow: 60 * 1000 },
+  [WatchLogSummaryLevel.TEN_MINUTES]: { timeWindow: 10 * 60 * 1000 },
+  [WatchLogSummaryLevel.THIRTY_MINUTES]: { timeWindow: 30 * 60 * 1000 },
+  [WatchLogSummaryLevel.ONE_HOUR]: { timeWindow: 60 * 60 * 1000 },
+  [WatchLogSummaryLevel.TWO_HOURS]: { timeWindow: 2 * 60 * 60 * 1000 },
+};
+
 export const Events = Object.fromEntries(
   [
     "onDemoModeSwitch",
@@ -773,14 +781,6 @@ export function useWatchingDuration(state) {
 
   return watchingDuration;
 }
-
-const SUMMARY_TIME_WINDOWS = {
-  [WatchLogSummaryLevel.ONE_MINUTE]: { timeWindow: 60 * 1000 },
-  [WatchLogSummaryLevel.TEN_MINUTES]: { timeWindow: 10 * 60 * 1000 },
-  [WatchLogSummaryLevel.THIRTY_MINUTES]: { timeWindow: 30 * 60 * 1000 },
-  [WatchLogSummaryLevel.ONE_HOUR]: { timeWindow: 60 * 60 * 1000 },
-  [WatchLogSummaryLevel.TWO_HOURS]: { timeWindow: 2 * 60 * 60 * 1000 },
-};
 
 export function useAutoSummarization(state, dispatch) {
   const { watchingLogs, watchingStartTime } = state;
