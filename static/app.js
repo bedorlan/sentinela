@@ -7,7 +7,6 @@ import {
   Events,
   initialState,
   isValidEmail,
-  serverPathPrefix,
   useAutoSummarization,
   useCloseWarning,
   useDetectionReset,
@@ -19,6 +18,7 @@ import {
   usePeriodicEmailUpdates,
   useRotatingPlaceholder,
   useVideoDetection,
+  useVideoStream,
   useWatchingDuration,
   WatchLogEventType,
   WatchLogSummaryLevel,
@@ -28,7 +28,6 @@ function App() {
   const [state, dispatch] = useImmerReducer(appReducer, initialState);
   const {
     confidence,
-    currentDemo,
     currentLanguage,
     demoMode,
     demos,
@@ -46,6 +45,7 @@ function App() {
   } = state;
 
   const { placeholderText } = useRotatingPlaceholder(state, dispatch);
+  const { videoRef, ready: isVideoStreamReady } = useVideoStream(state);
   const watchingDuration = useWatchingDuration(state);
   useAutoSummarization(state, dispatch);
   useCloseWarning(state);
@@ -65,7 +65,7 @@ function App() {
   return (
     <MainUI
       confidence={confidence}
-      currentDemo={currentDemo}
+      currentLanguage={currentLanguage}
       demoMode={demoMode}
       demos={demos}
       detectionState={detectionState}
@@ -73,15 +73,16 @@ function App() {
       enabledNotifications={enabledNotifications}
       fps={fps}
       imageQuality={imageQuality}
+      isLoadingTranslation={isLoadingTranslation}
       isRecording={isWatching}
+      isVideoStreamReady={isVideoStreamReady}
       isWatching={isWatching}
       placeholderText={placeholderText}
       prompt={prompt}
       reason={reason}
       texts={texts}
       toEmailAddress={toEmailAddress}
-      isLoadingTranslation={isLoadingTranslation}
-      currentLanguage={currentLanguage}
+      videoRef={videoRef}
       watchingDuration={watchingDuration}
       watchingLogs={watchingLogs}
       onDemoSelect={(demo) => {
@@ -129,7 +130,6 @@ function App() {
 
 function MainUI({
   confidence,
-  currentDemo,
   currentLanguage,
   demoMode,
   demos,
@@ -140,12 +140,14 @@ function MainUI({
   imageQuality,
   isLoadingTranslation,
   isRecording,
+  isVideoStreamReady,
   isWatching,
   placeholderText,
   prompt,
   reason,
   texts,
   toEmailAddress,
+  videoRef,
   watchingDuration,
   watchingLogs,
   // events
@@ -248,11 +250,11 @@ function MainUI({
             <div className="aspect-[16/9] sm:aspect-[16/8] md:aspect-[16/7] bg-black/50 rounded-2xl flex items-center justify-center relative overflow-hidden">
               <VideoCamera
                 className="w-full h-full object-cover"
-                currentDemo={currentDemo}
-                demoMode={demoMode}
                 fps={fps}
                 imageQuality={imageQuality}
                 isRecording={isRecording}
+                isVideoStreamReady={isVideoStreamReady}
+                videoRef={videoRef}
                 onFrame={onHandleFrame}
               />
 
@@ -757,96 +759,57 @@ function TranslationLoadingModal({ isLoading, texts }) {
 
 function VideoCamera({
   className,
-  currentDemo,
-  demoMode,
   fps,
   imageQuality,
   isRecording,
+  isVideoStreamReady,
+  videoRef,
   onFrame,
 }) {
-  const cameraRef = React.useRef(null);
   const canvasRef = React.useRef(null);
   const captureIntervalRef = React.useRef(null);
   const imageCaptureRef = React.useRef(null);
 
   useEffect(() => {
-    const setupImageCapture = async () => {
-      if (demoMode && currentDemo) {
-        if (cameraRef.current) {
-          cameraRef.current.src = `${serverPathPrefix}/static/demos/${currentDemo.file}`;
-          cameraRef.current.loop = false;
-          cameraRef.current.muted = true;
+    if (!isVideoStreamReady || !videoRef.current) return;
 
-          await cameraRef.current
-            .play()
-            .catch((err) => console.error("Error playing demo video:", err));
+    const stream =
+      videoRef.current.srcObject || videoRef.current.captureStream();
+    if (!stream) return;
 
-          cameraRef.current.scrollIntoView({
-            behavior: "smooth",
-            block: "center",
-          });
+    const videoTrack = stream.getVideoTracks()[0];
+    if (!videoTrack) return;
 
-          const stream = cameraRef.current.captureStream();
-          const videoTrack = stream.getVideoTracks()[0];
-          imageCaptureRef.current = new ImageCapture(videoTrack);
-        }
-      } else {
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({
-            video: true,
-          });
-          if (cameraRef.current) {
-            cameraRef.current.srcObject = stream;
-            const videoTrack = stream.getVideoTracks()[0];
-            imageCaptureRef.current = new ImageCapture(videoTrack);
-          }
-        } catch (err) {
-          console.error("Error accessing webcam:", err);
-        }
-      }
-    };
-
-    setupImageCapture();
-
-    return () => {
-      if (cameraRef.current) {
-        if (cameraRef.current.srcObject) {
-          const tracks = cameraRef.current.srcObject.getTracks();
-          tracks.forEach((track) => track.stop());
-        }
-        cameraRef.current.srcObject = null;
-        cameraRef.current.src = "";
-      }
-      imageCaptureRef.current = null;
-    };
-  }, [demoMode, currentDemo]);
+    imageCaptureRef.current = new ImageCapture(videoTrack);
+  }, [isVideoStreamReady]);
 
   const captureFrame = useCallback(async () => {
-    if (imageCaptureRef.current && canvasRef.current) {
-      try {
-        const imageBitmap = await imageCaptureRef.current.grabFrame();
+    if (!videoRef.current || !canvasRef.current || !imageCaptureRef.current)
+      return;
 
-        const canvas = canvasRef.current;
-        const context = canvas.getContext("2d");
+    try {
+      const imageBitmap = await imageCaptureRef.current.grabFrame();
 
-        canvas.width = imageBitmap.width;
-        canvas.height = imageBitmap.height;
-        context.drawImage(imageBitmap, 0, 0);
+      const canvas = canvasRef.current;
+      const context = canvas.getContext("2d");
 
-        canvas.toBlob(
-          async (blob) => {
-            if (blob && onFrame) {
-              onFrame(blob);
-            }
-          },
-          "image/jpeg",
-          imageQuality,
-        );
+      canvas.width = imageBitmap.width;
+      canvas.height = imageBitmap.height;
+      context.drawImage(imageBitmap, 0, 0);
 
-        imageBitmap.close();
-      } catch (err) {
-        console.error("Error capturing frame:", err);
-      }
+      canvas.toBlob(
+        async (blob) => {
+          if (blob && onFrame) {
+            onFrame(blob);
+          }
+        },
+        "image/jpeg",
+        imageQuality,
+      );
+
+      imageBitmap.close();
+    } catch (err) {
+      console.error("Error capturing frame:", err);
     }
   }, [imageQuality, onFrame]);
 
@@ -867,7 +830,7 @@ function VideoCamera({
   return (
     <>
       <video
-        ref={cameraRef}
+        ref={videoRef}
         autoPlay
         playsInline
         muted
