@@ -22,6 +22,7 @@ import { usePeriodicEmailUpdates } from "./static/usePeriodicEmailUpdates.js";
 import { useRotatingPlaceholder } from "./static/useRotatingPlaceholder.js";
 import { useVideoDetection } from "./static/useVideoDetection.js";
 import { useVideoStream } from "./static/useVideoStream.js";
+import { useVideoStreamRecorder } from "./static/useVideoStreamRecorder.js";
 import { useWatchingDuration } from "./static/useWatchingDuration.js";
 
 function App() {
@@ -57,6 +58,7 @@ function App() {
   useLoadDemos(state, dispatch);
   usePeriodicEmailUpdates(state, dispatch);
   useVideoDetection(state, dispatch);
+  useVideoStreamRecorder({ ...state, videoRef, isVideoStreamReady }, dispatch);
 
   const isWatching =
     detectionState == DetectionState.WATCHING ||
@@ -87,7 +89,6 @@ function App() {
       watchingLogs={watchingLogs}
       onDemoSelect={(demo) => {
         dispatch({ type: Events.onDemoStart, payload: { demo } });
-        console.log(`Starting demo: ${demo.demo_name}`);
       }}
       onEmailUpdateIntervalChange={(level) =>
         dispatch({ type: Events.onEmailUpdateIntervalChange, payload: level })
@@ -109,11 +110,9 @@ function App() {
       }
       onStartWatching={() => {
         dispatch({ type: Events.onWatchingStart });
-        console.log(`Starting to watch for: ${prompt}`);
       }}
       onStopWatching={() => {
         dispatch({ type: Events.onWatchingStop });
-        console.log("Stopped watching");
       }}
       onPromptChange={(newPrompt) =>
         dispatch({ type: Events.onPromptChange, payload: newPrompt })
@@ -554,6 +553,28 @@ function MainUI({
                                 </span>
                               )}
                           </div>
+                          {entry.type === WatchLogEventType.DETECTION && (
+                            <div className="ml-2">
+                              {entry.videoUrl ? (
+                                <a
+                                  href={entry.videoUrl}
+                                  download={`detection-${new Date(
+                                    entry.timestamp,
+                                  )
+                                    .toISOString()
+                                    .slice(0, 19)
+                                    .replace(/:/g, "-")}.webm`}
+                                  className="inline-flex items-center space-x-1 px-3 py-1 bg-blue-500/20 hover:bg-blue-500/30 rounded-lg border border-blue-400/30 hover:border-blue-400/50 transition-all text-xs text-blue-200 hover:text-blue-100"
+                                >
+                                  <span>⬇️</span>
+                                </a>
+                              ) : (
+                                <div className="inline-flex items-center space-x-1 px-3 py-1 bg-yellow-500/20 rounded-lg border border-yellow-400/30 text-xs text-yellow-200">
+                                  <span className="animate-spin">⚙️</span>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       );
                     })

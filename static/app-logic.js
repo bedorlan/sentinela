@@ -98,6 +98,15 @@ export function appReducer(draft, action) {
       });
       break;
 
+    case Events.onDetectionVideoClip:
+      const detectionLog = draft.watchingLogs.find(
+        (log) => log.type === WatchLogEventType.DETECTION && !log.videoUrl,
+      );
+      if (detectionLog) {
+        detectionLog.videoUrl = action.payload.videoUrl;
+      }
+      break;
+
     case Events.onEmailUpdateIntervalChange:
       draft.emailUpdateInterval = action.payload;
       break;

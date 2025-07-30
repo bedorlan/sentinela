@@ -1,5 +1,7 @@
 export const CONFIDENCE_THRESHOLD = 90;
 export const CONSECUTIVE_DETECTIONS_REQUIRED = 2;
+export const RECORDING_ROTATION_INTERVAL = 5000;
+export const POST_DETECTION_RECORDING_DURATION = 5000;
 
 export const Events = Object.fromEntries(
   [
@@ -8,6 +10,7 @@ export const Events = Object.fromEntries(
     "onDemoStart",
     "onDetectionReset",
     "onDetectionUpdate",
+    "onDetectionVideoClip",
     "onEmailUpdateIntervalChange",
     "onFpsChange",
     "onImageQualityChange",
