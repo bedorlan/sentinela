@@ -7,14 +7,15 @@ import {
 } from "./constants.js";
 
 export function useVideoStreamRecorder(state, dispatch) {
-  const { videoRef, isVideoStreamReady, detectionState } = state;
+  const { videoRef, isVideoStreamReady, detectionState, demoMode } = state;
   const recordersRef = useRef([]);
   const detectionRecorderRef = useRef(null);
   const rotationIntervalRef = useRef(null);
 
   const isRecordingActive =
-    detectionState === DetectionState.WATCHING ||
-    detectionState === DetectionState.DETECTED;
+    !demoMode &&
+    (detectionState === DetectionState.WATCHING ||
+      detectionState === DetectionState.DETECTED);
 
   const startNewRecorder = useCallback(() => {
     if (!videoRef?.current?.srcObject || !isVideoStreamReady) return null;
@@ -100,7 +101,7 @@ export function useVideoStreamRecorder(state, dispatch) {
 
   useEffect(
     function handleDetectionRecording() {
-      if (detectionState !== DetectionState.DETECTED) {
+      if (demoMode || detectionState !== DetectionState.DETECTED) {
         detectionRecorderRef.current = null;
         return;
       }
@@ -131,6 +132,6 @@ export function useVideoStreamRecorder(state, dispatch) {
         stopRecorder(detectionRecorderRef.current);
       }, POST_DETECTION_RECORDING_DURATION);
     },
-    [detectionState, stopRecorder],
+    [demoMode, detectionState, stopRecorder],
   );
 }

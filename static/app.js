@@ -569,9 +569,11 @@ function MainUI({
                                   <span>⬇️</span>
                                 </a>
                               ) : (
-                                <div className="inline-flex items-center space-x-1 px-3 py-1 bg-yellow-500/20 rounded-lg border border-yellow-400/30 text-xs text-yellow-200">
-                                  <span className="animate-spin">⚙️</span>
-                                </div>
+                                !demoMode && (
+                                  <div className="inline-flex items-center space-x-1 px-3 py-1 bg-yellow-500/20 rounded-lg border border-yellow-400/30 text-xs text-yellow-200">
+                                    <span className="animate-spin">⚙️</span>
+                                  </div>
+                                )
                               )}
                             </div>
                           )}
