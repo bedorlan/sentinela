@@ -7,22 +7,22 @@ import {
   Events,
   initialState,
   isValidEmail,
-  useAutoSummarization,
-  useCloseWarning,
-  useDetectionReset,
-  useDetectionSound,
-  useEmailNotification,
-  useInitLoader,
-  useLanguageLoader,
-  useLoadDemos,
-  usePeriodicEmailUpdates,
-  useRotatingPlaceholder,
-  useVideoDetection,
-  useVideoStream,
-  useWatchingDuration,
   WatchLogEventType,
   WatchLogSummaryLevel,
 } from "./static/app-logic.js";
+import { useAutoSummarization } from "./static/useAutoSummarization.js";
+import { useCloseWarning } from "./static/useCloseWarning.js";
+import { useDetectionReset } from "./static/useDetectionReset.js";
+import { useDetectionSound } from "./static/useDetectionSound.js";
+import { useEmailNotification } from "./static/useEmailNotification.js";
+import { useInitLoader } from "./static/useInitLoader.js";
+import { useLanguageLoader } from "./static/useLanguageLoader.js";
+import { useLoadDemos } from "./static/useLoadDemos.js";
+import { usePeriodicEmailUpdates } from "./static/usePeriodicEmailUpdates.js";
+import { useRotatingPlaceholder } from "./static/useRotatingPlaceholder.js";
+import { useVideoDetection } from "./static/useVideoDetection.js";
+import { useVideoStream } from "./static/useVideoStream.js";
+import { useWatchingDuration } from "./static/useWatchingDuration.js";
 
 function App() {
   const [state, dispatch] = useImmerReducer(appReducer, initialState);

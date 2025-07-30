@@ -54,7 +54,7 @@ app.mount(f"{server_path_prefix}/static", StaticFiles(directory="static"), name=
 async def read_root(username: str = Depends(authenticate)):
     return FileResponse("static/index.html")
 
-@router.get("/favicon.ico")
+@app.get("/favicon.ico")
 async def read_icon():
     return FileResponse("static/favicon.ico")
 
