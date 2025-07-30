@@ -160,6 +160,12 @@ export function appReducer(draft, action) {
       break;
 
     case Events.onLogSummarize:
+      if (
+        draft.detectionState !== DetectionState.WATCHING &&
+        draft.detectionState !== DetectionState.DETECTED
+      )
+        break;
+
       const idsToRemove = new Set(action.payload.logIds);
       draft.watchingLogs = [
         {
