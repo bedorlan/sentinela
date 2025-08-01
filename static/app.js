@@ -597,7 +597,9 @@ function MainUI({
 
           {/* Fun Examples */}
           <div className="mt-8 text-center">
-            <p className="text-lg mb-4 text-blue-200">{texts.try_examples}</p>
+            <p className="text-lg mb-4 text-white animate-pulse animate-glow font-bold">
+              {texts.try_examples}
+            </p>
             <div className="flex flex-wrap justify-center gap-3">
               {demos.map((demo) => (
                 <button
@@ -640,6 +642,19 @@ function MainUI({
         @keyframes fadeIn {
           0% { opacity: 0; }
           100% { opacity: 1; }
+        }
+        
+        @keyframes glow {
+          0%, 100% { 
+            text-shadow: 0 0 10px rgba(255, 234, 0, 0.5), 0 0 20px rgba(255, 165, 0, 0.3); 
+          }
+          50% { 
+            text-shadow: 0 0 20px rgba(255, 234, 0, 0.8), 0 0 30px rgba(255, 165, 0, 0.6); 
+          }
+        }
+        
+        .animate-glow {
+          animation: glow 2s ease-in-out infinite;
         }
       `}</style>
     </div>
