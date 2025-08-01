@@ -9,7 +9,7 @@ import {
   WatchLogEventType,
   WatchLogSummaryLevel,
 } from "./static/constants.js";
-import { isValidEmail } from "./static/utils.js";
+import { isValidEmail, exportLogAsCSV } from "./static/utils.js";
 import { useAutoSummarization } from "./static/useAutoSummarization.js";
 import { useCloseWarning } from "./static/useCloseWarning.js";
 import { useDetectionReset } from "./static/useDetectionReset.js";
@@ -584,7 +584,10 @@ function MainUI({
                 </div>
 
                 <div className="mt-4 text-center">
-                  <button className="px-4 py-1 bg-white/10 hover:bg-white/20 rounded-lg text-sm transition-all">
+                  <button
+                    onClick={() => exportLogAsCSV(filteredLogs)}
+                    className="px-4 py-1 bg-white/10 hover:bg-white/20 rounded-lg text-sm transition-all"
+                  >
                     📥 Export Log
                   </button>
                 </div>

@@ -29,6 +29,54 @@ export function generateLogId() {
   return `log-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 }
 
+export function exportLogAsCSV(logs) {
+  const csvData = logs.map((log) => ({
+    timestamp: new Date(log.timestamp).toISOString(),
+    type: log.type,
+    reason: log.reason || "",
+    confidence: log.confidence || "",
+    prompt: log.prompt || "",
+    summaryLevel: log.summaryLevel || "",
+  }));
+
+  const headers = [
+    "timestamp",
+    "type",
+    "reason",
+    "confidence",
+    "prompt",
+    "summaryLevel",
+  ];
+  const csvContent = [
+    headers.join(","),
+    ...csvData.map((row) =>
+      headers
+        .map((header) => {
+          const value = row[header];
+          return typeof value === "string" && value.includes(",")
+            ? `"${value}"`
+            : value;
+        })
+        .join(","),
+    ),
+  ].join("\n");
+
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const link = document.createElement("a");
+  const url = URL.createObjectURL(blob);
+  link.setAttribute("href", url);
+  link.setAttribute(
+    "download",
+    `sentinela-log-${new Date()
+      .toISOString()
+      .slice(0, 19)
+      .replace(/:/g, "-")}.csv`,
+  );
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
 export async function sendPeriodicUpdateEmail({
   toEmailAddress,
   prompt,
