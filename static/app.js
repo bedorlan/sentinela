@@ -89,6 +89,11 @@ function App() {
       watchingLogs={watchingLogs}
       onDemoSelect={(demo) => {
         dispatch({ type: Events.onDemoStart, payload: { demo } });
+        setTimeout(() => {
+          document
+            .getElementById("camera-feed")
+            ?.scrollIntoView({ behavior: "smooth", block: "center" });
+        }, 100);
       }}
       onEmailUpdateIntervalChange={(level) =>
         dispatch({ type: Events.onEmailUpdateIntervalChange, payload: level })
@@ -235,7 +240,10 @@ function MainUI({
         {/* Main Content */}
         <div className="max-w-4xl mx-auto">
           {/* Video Feed */}
-          <div className="bg-black/30 backdrop-blur rounded-3xl p-4 mb-3 border border-white/20">
+          <div
+            id="camera-feed"
+            className="bg-black/30 backdrop-blur rounded-3xl p-4 mb-3 border border-white/20"
+          >
             {demoMode && (
               <div className="mb-4 flex justify-center">
                 <button
