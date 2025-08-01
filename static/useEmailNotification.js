@@ -35,6 +35,7 @@ export function useEmailNotification(state, dispatch) {
             <p><strong>Prompt:</strong> ${log.prompt}</p>
             <p><strong>Confidence:</strong> ${log.confidence}%</p>
             <p><strong>Reason:</strong> ${log.reason}</p>
+            <br><br><i>Sentinela is watching</i>
           `,
           to_email: toEmailAddress,
           video_attachment: log.videoUrl,

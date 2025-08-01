@@ -94,6 +94,7 @@ export async function sendPeriodicUpdateEmail({
       <hr>
       <h3>Recent Activity Summary:</h3>
       <p>${summaryText}</p>
+      <br><br><i>Sentinela is watching</i>
     `,
     to_email: toEmailAddress,
   };
