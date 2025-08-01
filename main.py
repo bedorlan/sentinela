@@ -19,9 +19,8 @@ import sys
 import uuid
 
 HTTP_SERVER_PORT = 8000
-FRAMES_PER_INFERENCE = 6
-FRAME_BUFFER_SIZE = 9
-
+frames_per_inference = int(os.getenv("FRAMES_PER_INFERENCE", 6))
+frame_buffer_size = max(9, frames_per_inference + 3)
 is_server_mode = os.getenv("SENTINELA_SERVER_MODE") == '1'
 disable_authentication = os.getenv("DISABLE_AUTHENTICATION") == '1'
 server_path_prefix = os.getenv("SERVER_PATH_PREFIX", "")
@@ -158,8 +157,8 @@ async def websocket_frames(websocket: WebSocket):
             session_info.language = language
             session_info.frame_buffer.append(frame_data)
             
-            if len(session_info.frame_buffer) > FRAME_BUFFER_SIZE:
-                del session_info.frame_buffer[:-FRAME_BUFFER_SIZE]
+            if len(session_info.frame_buffer) > frame_buffer_size:
+                del session_info.frame_buffer[:-frame_buffer_size]
             
     except Exception as e:
         logger.error(f"WebSocket error: {e}")
@@ -177,7 +176,7 @@ async def inference_worker(websocket: WebSocket, session_info: Session):
         try:
             await asyncio.sleep(1)
                 
-            frames_to_process = session_info.frame_buffer[-FRAMES_PER_INFERENCE:]
+            frames_to_process = session_info.frame_buffer[-frames_per_inference:]
             current_prompt = session_info.current_prompt
             current_language = session_info.language
             

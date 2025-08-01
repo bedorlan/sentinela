@@ -134,7 +134,7 @@ class GemmaLocalInference(InferenceEngine):
             messages = [
                 {
                     "role": "user",
-                    "content": prompt,
+                    "content": [{"type": "text", "text": prompt}],
                 },
             ]
             

@@ -73,9 +73,11 @@ def create_translation_prompt(texts: str, locale: str) -> str:
 def create_summarization_prompt(events: list) -> str:
     delim = "\n- "
     events_text = delim.join(events)
-    summarization_prompt = f"Summarize these watching events in a single detailed sentence:{delim}{events_text}"
-    return summarization_prompt
-
+    summarization_prompt = f"""
+    Create a one-sentence summary of what was observed during this monitoring period:
+    {delim}{events_text}
+    """
+    return re.sub(r'\n\s+', '\n', summarization_prompt)
 
 def resize_frame(frame_data: bytes, max_size: int = 768) -> bytes:
     """Resize frame so max width or height is max_size while maintaining aspect ratio"""
