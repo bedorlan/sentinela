@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from datetime import datetime
 from fastapi import FastAPI, WebSocket, Depends, HTTPException, Cookie, Response
 from fastapi.responses import FileResponse
@@ -25,8 +26,14 @@ is_server_mode = os.getenv("SENTINELA_SERVER_MODE") == '1'
 disable_authentication = os.getenv("DISABLE_AUTHENTICATION") == '1'
 server_path_prefix = os.getenv("SERVER_PATH_PREFIX", "")
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    if not is_server_mode:
+        asyncio.create_task(launch_browser(HTTP_SERVER_PORT, server_path_prefix))
+    yield
+
 logger = logging.getLogger(__name__)
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 router = APIRouter(prefix=server_path_prefix)
 sessions: dict[str, Session] = {}
 inference_engine: InferenceEngine = None
@@ -251,6 +258,7 @@ def validate_environment():
         from src.openrouter_inference import OpenRouterInference
         inference_engine = OpenRouterInference()
     elif os.getenv("GOOGLE_API_KEY"):
+        # not officially supported for now
         from src.google_ai_studio_inference import GoogleAIStudioInference
         inference_engine = GoogleAIStudioInference()
     elif os.getenv("HF_TOKEN") or os.getenv("HF_HUB_OFFLINE"):
@@ -275,11 +283,6 @@ def setup_logging():
 if __name__ == "__main__":
     validate_environment()
     setup_logging()
-    
-    if not is_server_mode:
-        @app.on_event("startup")
-        def startup_event():
-            asyncio.create_task(launch_browser(HTTP_SERVER_PORT, server_path_prefix))
     
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=HTTP_SERVER_PORT, log_config=None)
