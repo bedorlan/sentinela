@@ -1,9 +1,15 @@
 import { useEffect, useRef } from "react";
-import { Events, WatchLogEventType } from "./constants.js";
+import {
+  Events,
+  WatchLogEventType,
+  POST_DETECTION_RECORDING_DURATION,
+  EMAIL_WITHOUT_VIDEO_DELAY,
+} from "./constants.js";
 import { getPathPrefix } from "./utils.js";
 
 export function useEmailNotification(state, dispatch) {
-  const { watchingLogs, enabledNotifications, toEmailAddress } = state;
+  const { watchingLogs, enabledNotifications, toEmailAddress, demoMode } =
+    state;
   const processingLogIds = useRef(new Set());
 
   useEffect(() => {
@@ -14,9 +20,12 @@ export function useEmailNotification(state, dispatch) {
     const logsToNotify = watchingLogs.filter(
       (log) =>
         log.type === WatchLogEventType.DETECTION &&
-        log.videoUrl &&
         !log.emailNotificationSent &&
-        !processingLogIds.current.has(log.id),
+        !processingLogIds.current.has(log.id) &&
+        (log.videoUrl ||
+          demoMode ||
+          Date.now() - log.timestamp.getTime() >
+            POST_DETECTION_RECORDING_DURATION + EMAIL_WITHOUT_VIDEO_DELAY),
     );
 
     if (logsToNotify.length === 0) {
@@ -38,7 +47,7 @@ export function useEmailNotification(state, dispatch) {
             <br><br><i>Sentinela is watching</i>
           `,
           to_email: toEmailAddress,
-          video_attachment: log.videoUrl,
+          video_attachment: log.videoUrl || null,
         };
 
         try {
@@ -69,5 +78,5 @@ export function useEmailNotification(state, dispatch) {
     };
 
     sendEmailNotifications();
-  }, [watchingLogs, enabledNotifications.email, toEmailAddress]);
+  }, [watchingLogs, enabledNotifications.email, toEmailAddress, demoMode]);
 }
