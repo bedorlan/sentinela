@@ -26,6 +26,10 @@ import { useVideoStreamRecorder } from "./static/useVideoStreamRecorder.js";
 import { useWatchingDuration } from "./static/useWatchingDuration.js";
 
 function App() {
+  if (!navigator.userAgent.includes("Chrome")) {
+    return <BrowserNotSupportedMessage />;
+  }
+
   const [state, dispatch] = useImmerReducer(appReducer, initialState);
   const {
     confidence,
@@ -896,6 +900,29 @@ function VideoCamera({
       />
       <canvas ref={canvasRef} style={{ display: "none" }} />
     </>
+  );
+}
+
+function BrowserNotSupportedMessage() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 text-white flex items-center justify-center px-4">
+      <div className="text-center max-w-md">
+        <div className="mb-6">
+          <h1 className="text-4xl font-bold mb-4">
+            <span className="inline-block">😔</span> Oops!
+          </h1>
+        </div>
+        <div className="bg-white/10 backdrop-blur rounded-3xl p-8 border border-white/20">
+          <p className="text-xl mb-4">
+            Sorry! 🙈 Sentinela only works with Chrome at the moment 🌟
+          </p>
+          <p className="text-gray-300 mb-6">
+            We're working hard to support more browsers soon! 🚀✨
+          </p>
+          <div className="text-2xl">🦄💫🎈</div>
+        </div>
+      </div>
+    </div>
   );
 }
 
