@@ -442,6 +442,14 @@ function MainUI({
               </div>
             )}
 
+            {demoMode && (
+              <div className="mb-4">
+                <p className="text-sm text-white">
+                  🚫 Recording is disabled for demos
+                </p>
+              </div>
+            )}
+
             {/* Action Button */}
             <button
               onClick={isWatching ? onStopWatching : onStartWatching}
