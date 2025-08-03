@@ -12,6 +12,7 @@ export function useInitLoader(state, dispatch) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
+        console.log("Current inference engine:", data.engine_name);
 
         dispatch({
           type: Events.onInitLoad,

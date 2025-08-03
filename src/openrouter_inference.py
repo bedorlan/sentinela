@@ -167,3 +167,6 @@ class OpenRouterInference(InferenceEngine):
         except Exception as e:
             logger.error(f"Summarization error: {str(e)}")
             raise Exception(f"Summarization failed: {str(e)}")
+    
+    def yourName(self) -> str:
+        return f"{self.__class__.__name__} - {self.model_name}"

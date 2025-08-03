@@ -30,3 +30,12 @@ class InferenceEngine(Protocol):
             str: Single sentence summarizing the events
         """
         ...
+    
+    def yourName(self) -> str:
+        """
+        Return the inference engine class name plus the current model name.
+        
+        Returns:
+            str: Engine class name and model name
+        """
+        ...

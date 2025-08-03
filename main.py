@@ -79,7 +79,8 @@ async def init_endpoint(username: str = Depends(authenticate), session_id: str =
         logger.info(f"New session created: {session_id} for user: {username}")
     
     smtp_from_email = os.getenv("SMTP_FROM_EMAIL")
-    response_data = {"email_address": smtp_from_email}
+    engine_name = inference_engine.yourName()
+    response_data = {"email_address": smtp_from_email, "engine_name": engine_name}
 
     response = Response(content=json.dumps(response_data), media_type="application/json")
     response.set_cookie(
