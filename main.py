@@ -257,6 +257,9 @@ def validate_environment():
     if os.getenv("OPENROUTER_API_KEY"):
         from src.openrouter_inference import OpenRouterInference
         inference_engine = OpenRouterInference()
+    elif os.getenv("TOGETHER_API_KEY"):
+        from src.together_inference import TogetherInference
+        inference_engine = TogetherInference()
     elif os.getenv("GOOGLE_API_KEY"):
         # not officially supported for now
         from src.google_ai_studio_inference import GoogleAIStudioInference

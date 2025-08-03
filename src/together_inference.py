@@ -2,7 +2,7 @@ from . import util
 from .inference_engine import InferenceEngine
 from .model.inference_response import InferenceResponse
 from datetime import datetime
-from openai import AsyncOpenAI
+from together import AsyncTogether
 from typing import List
 import base64
 import logging
@@ -11,37 +11,25 @@ import os
 logger = logging.getLogger(__name__)
 
 
-class OpenRouterInference(InferenceEngine):
+class TogetherInference(InferenceEngine):
     def __init__(self):
-        self.api_key = os.getenv("OPENROUTER_API_KEY")
+        self.api_key = os.getenv("TOGETHER_API_KEY")
         self.client = None
-        self.model_name = 'google/gemma-3n-e4b-it' # this one supports images
-        # self.model_name = 'google/gemma-3n-e4b-it:free'
-        # self.model_name = 'google/gemma-3-27b-it:free'
+        self.model_name = 'google/gemma-3n-E4B-it'
         self._translation_cache = {}
         self._initialize_client()
         
     
     def _initialize_client(self):
         if self.api_key:
-            self.client = AsyncOpenAI(
-                base_url="https://openrouter.ai/api/v1",
-                api_key=self.api_key,
-                timeout=5.0,
-            )
-            logger.info("OpenRouter configured successfully")
+            self.client = AsyncTogether(api_key=self.api_key, timeout=5.0)
+            logger.info("Together AI configured successfully")
         else:
-            logger.error("OPENROUTER_API_KEY not found in environment variables")
-            logger.error("Application cannot function without OpenRouter API key. Exiting.")
+            logger.error("TOGETHER_API_KEY not found in environment variables")
+            logger.error("Application cannot function without Together API key. Exiting.")
             exit(1)
 
     async def process_frames(self, frames_data: List[bytes], prompt: str, language: str = "en") -> InferenceResponse:
-        """
-        Process multiple frames for AI analysis.
-        
-        Returns:
-            InferenceResponse: Response containing processing decision and metadata
-        """
         start_time = datetime.now().timestamp()
         ai_response = await self._analyze_frame_with_ai(frames_data, prompt, language)
         if not ai_response:
@@ -56,7 +44,6 @@ class OpenRouterInference(InferenceEngine):
         )
 
     async def _analyze_frame_with_ai(self, frames: list, prompt: str, language: str = "en") -> str:
-        """Internal function to analyze frames using OpenRouter"""
         try:
             content = []
             for frame_data in frames:
@@ -101,13 +88,6 @@ class OpenRouterInference(InferenceEngine):
     async def translate(self, texts: list, locale: str) -> list:
         """
         Translate a list of texts to the specified locale.
-        
-        Args:
-            texts: List of text strings to translate
-            locale: Target language locale (e.g., 'es', 'fr', 'pt', 'de')
-            
-        Returns:
-            List of translated texts in the same order
         """
         cache_key = locale
         

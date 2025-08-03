@@ -16,7 +16,7 @@ Sentinela transforms your laptop into a powerful AI monitoring system using real
 - **Smart Alerts**: Email notifications with video attachments when events occur
 - **Active Reassurance**: Optional "everything's okay" notifications
 - **Joy Capture**: Automatic recording of special moments
-- **Multiple AI Backends**: OpenRouter, Google AI Studio or local Gemma models
+- **Multiple AI Backends**: OpenRouter or local Gemma models
 - **100% Privacy Option**: Runs completely offline with local models
 - **Web Interface**: React-based frontend with real-time monitoring
 - **Long-Running Sessions**: Designed for continuous operation (days/weeks)
