@@ -1,4 +1,4 @@
-# Sentinela 🎯
+# Sentinela 👁️
 
 > **Watch what matters to you**
 
