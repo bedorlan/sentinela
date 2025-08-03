@@ -249,7 +249,7 @@ async def summarize_watch_logs(request: WatchLogSummaryRequest, username: str = 
 app.include_router(router)
 
 def validate_environment():
-    if is_server_mode and not os.getenv("GUEST_PASSWORD"):
+    if is_server_mode and not disable_authentication and not os.getenv("GUEST_PASSWORD"):
         logger.error("GUEST_PASSWORD environment variable is not set")
         logger.error("Please set GUEST_PASSWORD to enable authentication")
         exit(1)
