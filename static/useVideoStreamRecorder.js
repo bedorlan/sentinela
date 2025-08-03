@@ -110,11 +110,12 @@ export function useVideoStreamRecorder(state, dispatch) {
       if (recordersRef.current.length === 0) return;
 
       detectionRecorderRef.current = recordersRef.current.shift();
+      const recorderFinishingTheClip = detectionRecorderRef.current;
 
       setTimeout(() => {
-        if (!detectionRecorderRef.current) return;
+        if (!recorderFinishingTheClip) return;
 
-        detectionRecorderRef.current.onBlobReady = (blob) => {
+        recorderFinishingTheClip.onBlobReady = (blob) => {
           const reader = new FileReader();
           reader.onload = () => {
             const dataUrl = reader.result;
@@ -129,7 +130,7 @@ export function useVideoStreamRecorder(state, dispatch) {
           reader.readAsDataURL(blob);
         };
 
-        stopRecorder(detectionRecorderRef.current);
+        stopRecorder(recorderFinishingTheClip);
       }, POST_DETECTION_RECORDING_DURATION);
     },
     [demoMode, detectionState, stopRecorder],

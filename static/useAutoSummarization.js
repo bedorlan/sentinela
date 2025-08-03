@@ -68,6 +68,7 @@ export function useAutoSummarization(state, dispatch) {
         }
 
         const data = await response.json();
+        if (!data?.summary) return;
 
         dispatch({
           type: Events.onLogSummarize,
