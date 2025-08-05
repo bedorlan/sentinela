@@ -1,3 +1,12 @@
+/**
+ * Video Stream Recorder Hook - Manages continuous video recording with clip generation
+ * 
+ * This hook implements a sophisticated video recording system that maintains rolling
+ * video buffers during detection sessions. It continuously records short clips,
+ * rotating them to save memory, and generates detection video clips when events occur.
+ * When a detection happens, it captures the moments leading up to and after the detection.
+ */
+
 import { useEffect, useRef, useCallback } from "react";
 import {
   DetectionState,

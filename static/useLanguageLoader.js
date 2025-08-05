@@ -1,3 +1,12 @@
+/**
+ * Language Loader Hook - Manages internationalization and translation loading
+ * 
+ * This hook handles loading and prefetching of translation files for different languages.
+ * It automatically detects the user's browser language and prefetches those translations
+ * for faster switching. When the user changes languages, it fetches the appropriate
+ * translation file and updates the application's text content.
+ */
+
 import React, { useEffect } from "react";
 import { Events } from "./constants.js";
 import { getPathPrefix } from "./utils.js";

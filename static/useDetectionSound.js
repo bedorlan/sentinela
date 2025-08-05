@@ -1,3 +1,11 @@
+/**
+ * Detection Sound Hook - Plays audio notifications when detections occur
+ * 
+ * This hook manages the audio notification system, preloading a detection sound file
+ * and playing it whenever the detection state changes to DETECTED (if sound notifications
+ * are enabled). Provides immediate audio feedback to alert users of successful detections.
+ */
+
 import React, { useEffect } from "react";
 import { DetectionState } from "./constants.js";
 import { getPathPrefix } from "./utils.js";

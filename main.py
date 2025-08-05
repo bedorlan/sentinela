@@ -1,3 +1,16 @@
+"""
+Main entry point for the Sentinela API server.
+
+This file handles the inference process for AI-powered monitoring and provides
+the following endpoints for the frontend:
+- GET / - Serves the main application interface
+- GET /init - Initialize user session and get configuration
+- GET /translations/{language} - Get UI text translations
+- WebSocket /ws/frames - Real-time frame processing and inference
+- POST /send-email - Send email notifications with attachments
+- POST /summarize-watch-logs - Generate summaries of watching events
+"""
+
 from contextlib import asynccontextmanager
 from datetime import datetime
 from fastapi import FastAPI, WebSocket, Depends, HTTPException, Cookie, Response

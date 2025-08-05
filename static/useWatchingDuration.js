@@ -1,3 +1,11 @@
+/**
+ * Watching Duration Hook - Tracks and formats elapsed time during detection sessions
+ * 
+ * This hook calculates and formats the duration since detection started, updating every
+ * second while in WATCHING or DETECTED states. It provides human-readable time formatting
+ * (seconds, minutes, hours, days) to show users how long their detection session has been running.
+ */
+
 import React, { useEffect } from "react";
 import { DetectionState } from "./constants.js";
 

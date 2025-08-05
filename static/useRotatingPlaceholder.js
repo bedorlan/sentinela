@@ -1,3 +1,12 @@
+/**
+ * Rotating Placeholder Hook - Cycles through example prompts in the input field
+ * 
+ * This hook rotates through different placeholder text examples every 3 seconds to give
+ * users inspiration for detection prompts. It helps users understand what kind of prompts
+ * they can write by showing practical examples like "tell me when a cat appears" or
+ * "alert me when someone smiles".
+ */
+
 import React, { useEffect } from "react";
 import { Events } from "./constants.js";
 

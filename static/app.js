@@ -1,3 +1,16 @@
+/**
+ * Main entry point for the Sentinela web application.
+ *
+ * This file loads and orchestrates the main UI components, connecting them with the
+ * application logic through a centralized redux-like state management system.
+ *
+ * Technologies used:
+ * - React 18+ with functional components and hooks
+ * - Immer for immutable state management via useImmerReducer
+ * - Canvas API and ImageCapture API for video frame processing
+ * - Tailwind CSS for styling with custom animations
+ * - Modern browser APIs (getUserMedia, ImageCapture) for camera access
+ */
 import { createRoot } from "react-dom";
 import { useImmerReducer } from "use-immer";
 import React, { useEffect, useCallback } from "react";

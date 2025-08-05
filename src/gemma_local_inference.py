@@ -1,3 +1,12 @@
+"""
+Local Gemma model inference engine for computer vision monitoring.
+
+This module implements a Hugging Face Transformers-based inference engine using
+Google's Gemma model for local processing of video frames. It provides image-text
+analysis capabilities for detecting specific events or behaviors in video streams
+without requiring external API calls.
+"""
+
 from . import util
 from .inference_engine import InferenceEngine
 from .model.inference_response import InferenceResponse

@@ -1,3 +1,12 @@
+/**
+ * Init Loader Hook - Loads initial application configuration from the server
+ *
+ * This hook fetches initial configuration data when the application starts,
+ * including the default email address for notifications and information about
+ * the currently configured AI inference engine. It ensures the app has the
+ * necessary configuration data before users begin watching sessions.
+ */
+
 import { useEffect } from "react";
 import { Events } from "./constants.js";
 import { getPathPrefix } from "./utils.js";

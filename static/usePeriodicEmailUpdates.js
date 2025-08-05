@@ -1,3 +1,12 @@
+/**
+ * Periodic Email Updates Hook - Sends scheduled email summaries during watching sessions
+ *
+ * This hook automatically sends periodic email updates to users while watching is active,
+ * containing summarized activity reports. It uses the auto-summarization system to create
+ * meaningful updates at configurable intervals (hourly, daily, etc.) and includes detection
+ * counts and session duration in the emails.
+ */
+
 import React, { useEffect } from "react";
 import {
   DetectionState,

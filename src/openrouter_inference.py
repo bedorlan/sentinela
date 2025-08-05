@@ -1,3 +1,11 @@
+"""
+OpenRouter API inference engine for cloud-based AI analysis.
+
+This module provides integration with OpenRouter's API service to access Google Gemma
+models for computer vision analysis. It handles image encoding, API communication,
+response parsing, and includes caching for translations to optimize performance.
+"""
+
 from . import util
 from .inference_engine import InferenceEngine
 from .model.inference_response import InferenceResponse

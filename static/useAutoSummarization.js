@@ -1,3 +1,12 @@
+/**
+ * Auto Summarization Hook - Automatically creates AI-powered summaries of watching activity
+ *
+ * This hook implements intelligent log summarization by periodically sending detection
+ * activity to the AI for analysis and summary generation. It operates on multiple time
+ * windows (short-term, medium-term, long-term) to create hierarchical summaries that
+ * help users understand patterns and trends in their detection sessions.
+ */
+
 import React, { useEffect } from "react";
 import {
   Events,

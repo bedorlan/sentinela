@@ -1,3 +1,11 @@
+"""
+Email service for sending detection notifications with video attachments.
+
+This module provides SMTP-based email functionality for the Sentinela monitoring system.
+It supports HTML email content and base64-encoded video attachments for detection alerts.
+The service handles various SMTP configurations and provides detailed error reporting.
+"""
+
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText

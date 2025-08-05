@@ -1,3 +1,12 @@
+/**
+ * Video Detection Hook - Manages real-time AI video analysis via WebSocket
+ * 
+ * This hook establishes a WebSocket connection to send video frames and user prompts
+ * to the AI inference engine, then receives back confidence scores and detection reasons.
+ * It handles the core detection pipeline: capturing frames → sending to AI → processing results.
+ * Uses MessagePack for efficient binary data transmission.
+ */
+
 import * as MessagePack from "@msgpack/msgpack";
 import { useEffect } from "react";
 import ruw from "react-use-websocket";

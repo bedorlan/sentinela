@@ -1,3 +1,12 @@
+"""
+Browser launcher utility for automatically opening the Sentinela application.
+
+This module handles cross-platform browser launching with Chrome/Chromium detection
+and configuration for optimal application performance. It launches the browser in
+app mode with specific flags to disable throttling and enable autoplay for the
+video monitoring interface.
+"""
+
 import asyncio
 import logging
 import platform

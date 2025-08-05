@@ -1,3 +1,12 @@
+/**
+ * Email Notification Hook - Sends detection alert emails with video clip attachments
+ *
+ * This hook monitors detection logs and automatically sends email notifications when
+ * detections occur. It waits for video clips to be generated (or a timeout) before
+ * sending emails, and includes detection details like confidence, reason, and timing.
+ * Prevents duplicate emails by tracking which detections have already been notified.
+ */
+
 import { useEffect, useRef } from "react";
 import {
   Events,

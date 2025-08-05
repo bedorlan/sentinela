@@ -1,3 +1,12 @@
+/**
+ * Video Stream Hook - Manages video input sources (webcam or demo videos)
+ * 
+ * This hook handles setting up and managing video input sources. In normal mode,
+ * it requests webcam access and sets up the live video stream. In demo mode,
+ * it loads and plays pre-recorded demo videos. It manages the lifecycle of video
+ * streams including cleanup and resource management.
+ */
+
 import React, { useEffect } from "react";
 import { getPathPrefix } from "./utils.js";
 
