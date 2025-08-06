@@ -110,7 +110,8 @@ class OpenRouterInference(InferenceEngine):
             )
             return response.choices[0].message.content
         except Exception as e:
-            logger.error(f"AI inference error: {str(e)}")
+            if "timed out" not in str(e).lower():
+                logger.error(f"AI inference error: {str(e)}")
             return ""
     
     async def translate(self, texts: list, locale: str) -> list:

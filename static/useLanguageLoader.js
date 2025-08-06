@@ -1,6 +1,6 @@
 /**
  * Language Loader Hook - Manages internationalization and translation loading
- * 
+ *
  * This hook handles loading and prefetching of translation files for different languages.
  * It automatically detects the user's browser language and prefetches those translations
  * for faster switching. When the user changes languages, it fetches the appropriate
@@ -41,7 +41,8 @@ export function useLanguageLoader(state, dispatch) {
         }
       };
 
-      prefetchPromisesRef.current[languageCode] = prefetchTranslation();
+      // TODO: disable prefetch translations for now
+      // prefetchPromisesRef.current[languageCode] = prefetchTranslation();
     }
   }, []);
 
