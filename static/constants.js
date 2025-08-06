@@ -95,7 +95,7 @@ export const initialState = {
     email: false,
   },
   emailUpdateInterval: null,
-  fps: 3,
+  fps: 1.5,
   imageQuality: 0.9,
   isLoadingTranslation: false,
   lastReasonUpdateTime: 0,

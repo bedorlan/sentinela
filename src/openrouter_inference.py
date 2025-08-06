@@ -32,10 +32,15 @@ class OpenRouterInference(InferenceEngine):
     
     def _initialize_client(self):
         if self.api_key:
+            base_url = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
             self.client = AsyncOpenAI(
-                base_url="https://openrouter.ai/api/v1",
+                base_url=base_url,
                 api_key=self.api_key,
-                timeout=5.0,
+            )
+            self.vision_client = AsyncOpenAI(
+                base_url=base_url,
+                api_key=self.api_key,
+                max_retries=0
             )
             logger.info("OpenRouter configured successfully")
         else:
@@ -87,19 +92,21 @@ class OpenRouterInference(InferenceEngine):
                 "content": content
             }]
             
-            response_text = await self._run_ai_inference(messages)
+            response_text = await self._run_ai_inference(messages, timeout=5)
             return response_text
             
         except Exception as e:
             logger.error(f"AI analysis error: {str(e)}")
             return ""
     
-    async def _run_ai_inference(self, messages):
+    async def _run_ai_inference(self, messages, timeout=None):
         """Async worker function for AI inference"""
         try:
-            response = await self.client.chat.completions.create(
+            client = self.vision_client if timeout else self.client
+            response = await client.chat.completions.create(
                 model=self.model_name,
                 messages=messages,
+                timeout=timeout
             )
             return response.choices[0].message.content
         except Exception as e:

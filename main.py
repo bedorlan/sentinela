@@ -33,7 +33,7 @@ import sys
 import uuid
 
 HTTP_SERVER_PORT = 8000
-frames_per_inference = int(os.getenv("FRAMES_PER_INFERENCE", 6))
+frames_per_inference = int(os.getenv("FRAMES_PER_INFERENCE", 3))
 frame_buffer_size = max(9, frames_per_inference + 3)
 is_server_mode = os.getenv("SENTINELA_SERVER_MODE") == '1'
 disable_authentication = os.getenv("DISABLE_AUTHENTICATION") == '1'
