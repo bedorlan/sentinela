@@ -41,5 +41,19 @@
   "demo_industrial": "🏭 Industrial safety",
   "demo_parking": "🚗 Parking entrance",
   "demo_cat_sleeping": "🐈 Cat sleeping",
-  "demo_thirsty_bird": "🐦 Thirsty bird"
+  "demo_thirsty_bird": "🐦 Thirsty bird",
+  "switch_to_webcam": "📹 Switch to Webcam",
+  "recording_disabled_demos": "🚫 Recording is disabled for demos",
+  "watching_log": "📋 Watching Log",
+  "no_logs_yet": "No logs yet. Start watching to see activity here.",
+  "started_watching": "Started watching:",
+  "stopped_watching": "Stopped watching",
+  "export_log": "📥 Export Log",
+  "switch_to": "Switch to",
+  "english": "English",
+  "send_detection_emails": "✅ I'll send you detection emails to:",
+  "regular_updates_question": "🕐 Should I also send you regular updates?",
+  "every_30_mins": "Every 30 mins",
+  "every_hour": "Every hour",
+  "every_2_hours": "Every 2 hours"
 }

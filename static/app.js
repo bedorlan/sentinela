@@ -236,6 +236,7 @@ function MainUI({
               <LanguageSwitcher
                 currentLanguage={currentLanguage}
                 onLanguageSwitch={onLanguageSwitch}
+                texts={texts}
               />
             </div>
           </div>
@@ -245,6 +246,7 @@ function MainUI({
             <LanguageSwitcher
               currentLanguage={currentLanguage}
               onLanguageSwitch={onLanguageSwitch}
+              texts={texts}
             />
           </div>
         </div>
@@ -267,7 +269,7 @@ function MainUI({
                   onClick={onModeToggle}
                   className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 transition-all border border-white/30"
                 >
-                  📹 Switch to Webcam
+                  {texts.switch_to_webcam}
                 </button>
               </div>
             )}
@@ -402,7 +404,7 @@ function MainUI({
               {enabledNotifications.email && (
                 <div className="mt-3">
                   <p className="text-sm text-white mb-2">
-                    ✅ I'll send you detection emails to:
+                    {texts.send_detection_emails}
                   </p>
                   <input
                     type="email"
@@ -419,20 +421,20 @@ function MainUI({
             {enabledNotifications.email && (
               <div className="mb-6">
                 <label className="block text-xl mb-3 font-semibold">
-                  🕐 Should I also send you regular updates?
+                  {texts.regular_updates_question}
                 </label>
                 <div className="grid grid-cols-3 gap-3">
                   {[
                     {
-                      label: "Every 30 mins",
+                      label: texts.every_30_mins,
                       level: WatchLogSummaryLevel.THIRTY_MINUTES,
                     },
                     {
-                      label: "Every hour",
+                      label: texts.every_hour,
                       level: WatchLogSummaryLevel.ONE_HOUR,
                     },
                     {
-                      label: "Every 2 hours",
+                      label: texts.every_2_hours,
                       level: WatchLogSummaryLevel.TWO_HOURS,
                     },
                   ].map((option) => (
@@ -462,7 +464,7 @@ function MainUI({
             {demoMode && (
               <div className="mb-4">
                 <p className="text-sm text-white">
-                  🚫 Recording is disabled for demos
+                  {texts.recording_disabled_demos}
                 </p>
               </div>
             )}
@@ -488,7 +490,7 @@ function MainUI({
               className="w-full flex items-center justify-between hover:opacity-80 transition-opacity"
             >
               <h2 className="text-xl font-bold flex items-center">
-                📋 Watching Log
+                {texts.watching_log}
               </h2>
               <span
                 className={`text-xl transition-transform duration-200 ${
@@ -505,9 +507,7 @@ function MainUI({
                 <div className="space-y-2 max-h-96 overflow-y-auto mt-4">
                   {filteredLogs.length === 0 ? (
                     <div className="text-center py-8 text-gray-400">
-                      <p className="text-sm">
-                        No logs yet. Start watching to see activity here.
-                      </p>
+                      <p className="text-sm">{texts.no_logs_yet}</p>
                     </div>
                   ) : (
                     filteredLogs.map((entry) => {
@@ -570,11 +570,11 @@ function MainUI({
                                 <span className="italic">{entry.reason}</span>
                               ) : entry.type === WatchLogEventType.START ? (
                                 <>
-                                  Started watching:{" "}
+                                  {texts.started_watching}{" "}
                                   <span className="italic">{entry.prompt}</span>
                                 </>
                               ) : entry.type === WatchLogEventType.STOP ? (
-                                "Stopped watching"
+                                texts.stopped_watching
                               ) : (
                                 ""
                               )}
@@ -621,7 +621,7 @@ function MainUI({
                     onClick={() => exportLogAsCSV(filteredLogs)}
                     className="px-4 py-1 bg-white/10 hover:bg-white/20 rounded-lg text-sm transition-all"
                   >
-                    📥 Export Log
+                    {texts.export_log}
                   </button>
                 </div>
               </>
@@ -694,7 +694,7 @@ function MainUI({
   );
 }
 
-function LanguageSwitcher({ currentLanguage, onLanguageSwitch }) {
+function LanguageSwitcher({ currentLanguage, onLanguageSwitch, texts }) {
   const browserLanguage = navigator.language;
   const languageCode = browserLanguage.split("-")[0];
 
@@ -706,7 +706,7 @@ function LanguageSwitcher({ currentLanguage, onLanguageSwitch }) {
   const targetLanguage = isEnglishActive ? languageCode : "en";
   const languageName = isEnglishActive
     ? new Intl.DisplayNames(["en"], { type: "language" }).of(languageCode)
-    : "English";
+    : texts.english;
 
   const buttonConfig = isEnglishActive
     ? {
@@ -751,7 +751,7 @@ function LanguageSwitcher({ currentLanguage, onLanguageSwitch }) {
           <div
             className={`text-xs ${buttonConfig.textColor} group-hover:text-yellow-200 transition-colors`}
           >
-            Switch to
+            {texts.switch_to}
           </div>
           <div className="text-sm font-semibold text-white group-hover:text-yellow-300 transition-colors">
             {languageName}
